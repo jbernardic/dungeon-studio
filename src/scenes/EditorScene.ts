@@ -66,9 +66,11 @@ export class EditorScene {
         this.placeMesh = MeshBuilder.CreateBox("placeMesh", { size: 0.5, faceColors: Array(6).fill(new Color4(0.5, 1, 0.5, 1)) }, scene);
         this.placeMesh.setEnabled(false);
 
+        MeshUtils.import("models/Wall/Wall_T0.glb", scene).then(mesh => {
+            this.wallMeshes[0] = mesh!;
+        });
         MeshUtils.import("models/Wall/Wall_T1.glb", scene).then(mesh => {
             this.wallMeshes[1] = mesh!;
-            this.placeMesh = mesh!;
         });
         MeshUtils.import("models/Wall/Wall_T2.glb", scene).then(mesh => {
             this.wallMeshes[2] = mesh!;
@@ -136,14 +138,31 @@ export class EditorScene {
 
             let t = 4;
             let direction = 0;
-            //1
+            //0
             if (tN && tS && !tW && !tE) {
-                t = 1;
+                t = 0;
                 direction = 0;
             }
             else if (tW && tE && !tN && !tS) {
+                t = 0;
+                direction = 1;
+            }
+            //1
+            else if (!tN && !tW && !tE && tS){
+                t = 1;
+                direction = 2;
+            }
+            else if(!tN && !tW && tE && !tS){
                 t = 1;
                 direction = 1;
+            }
+            else if (!tN && tW && !tE && !tS){
+                t = 1;
+                direction = 3;
+            }
+            else if(tN && !tW && !tE && !tS){
+                t = 1;
+                direction = 0;
             }
             //2
             else if (tN && tW && !tE && !tS) {
@@ -179,6 +198,7 @@ export class EditorScene {
                 t = 3;
                 direction = 1;
             }
+            
 
             this.map.set(i, j, { type: "wall", tIndex: t, direction: direction });
         }

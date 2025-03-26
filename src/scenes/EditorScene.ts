@@ -4,6 +4,15 @@ import { SparseGrid } from '../utils/SparseGrid';
 import { MeshUtils } from '../utils/MeshUtils';
 
 
+enum JunctionType {
+    Base,
+    T0,
+    T1,
+    T2,
+    T3,
+    T4
+}
+
 interface FloorTile {
     type: "floor";
 }
@@ -11,7 +20,7 @@ interface FloorTile {
 interface WallTile {
     type: 'wall'; // etc.
     direction: number;
-    tIndex: number;
+    junction: JunctionType;
 }
 
 type Tile = FloorTile | WallTile;
@@ -20,7 +29,7 @@ type Tile = FloorTile | WallTile;
 export class EditorScene {
     private scene: Scene;
     private placeMesh: AbstractMesh;
-    private wallMeshes: { [t: number]: AbstractMesh } = {};
+    private wallMeshes: Map<JunctionType, AbstractMesh> = new Map();
     private camera: FreeCamera;
     private paintMode: boolean = false;
     private map: SparseGrid<Tile> = new SparseGrid<Tile>();
@@ -66,20 +75,26 @@ export class EditorScene {
         this.placeMesh = MeshBuilder.CreateBox("placeMesh", { size: 0.5, faceColors: Array(6).fill(new Color4(0.5, 1, 0.5, 1)) }, scene);
         this.placeMesh.setEnabled(false);
 
-        MeshUtils.import("models/Wall/Wall_T0.glb", scene).then(mesh => {
-            this.wallMeshes[0] = mesh!;
+        MeshUtils.import("models/Wall/Wall.glb", scene).then(mesh => {
+            this.wallMeshes.set(JunctionType.Base, mesh!);
         });
         MeshUtils.import("models/Wall/Wall_T1.glb", scene).then(mesh => {
-            this.wallMeshes[1] = mesh!;
+            this.wallMeshes.set(JunctionType.T1, mesh!);
         });
         MeshUtils.import("models/Wall/Wall_T2.glb", scene).then(mesh => {
-            this.wallMeshes[2] = mesh!;
+            this.wallMeshes.set(JunctionType.T2, mesh!);
         });
         MeshUtils.import("models/Wall/Wall_T3.glb", scene).then(mesh => {
-            this.wallMeshes[3] = mesh!;
+            this.wallMeshes.set(JunctionType.T3, mesh!);
         });
         MeshUtils.import("models/Wall/Wall_T4.glb", scene).then(mesh => {
-            this.wallMeshes[4] = mesh!;
+            this.wallMeshes.set(JunctionType.T4, mesh!);
+
+            MeshUtils.import("models/Wall/Wall_T0.glb", scene).then(mesh => {
+                mesh!.scaling = this.wallMeshes.get(JunctionType.T4)!.scaling;
+                this.wallMeshes.set(JunctionType.T0, mesh!);
+            });
+            
         });
     }
 
@@ -105,7 +120,7 @@ export class EditorScene {
                     for (let j = z - 1; j <= z + 1; ++j) {
                         if (i == x && j == z) continue;
                         if (this.map.get(i, j)?.type != "floor") {
-                            this.map.set(i, j, { type: "wall", direction: 0, tIndex: 0 });
+                            this.map.set(i, j, { type: "wall", direction: 0, junction: JunctionType.Base });
                         }
                     }
                 }
@@ -116,7 +131,7 @@ export class EditorScene {
                 this.map.forEach((i, j, value) => {
                     console.log(value?.type);
                     if (value?.type == "wall") {
-                        this.placeWall(this.wallMeshes[value.tIndex], i, y, j, value.direction);
+                        this.placeWall(this.wallMeshes.get(value.junction)!, i, y, j, value.direction);
                     }
                 })
             }
@@ -135,72 +150,76 @@ export class EditorScene {
             const tS = this.map.get(i, j - 1)?.type == "wall";
             const tW = this.map.get(i - 1, j)?.type == "wall";
             const tE = this.map.get(i + 1, j)?.type == "wall";
-
-            let t = 4;
+            
+            let junction = JunctionType.T0; //T0 (wall with no connection)
             let direction = 0;
-            //0
+            //Base (horizontal wall)
             if (tN && tS && !tW && !tE) {
-                t = 0;
+                junction = JunctionType.Base;
                 direction = 0;
             }
             else if (tW && tE && !tN && !tS) {
-                t = 0;
+                junction = JunctionType.Base;
                 direction = 1;
             }
-            //1
+            //T1
             else if (!tN && !tW && !tE && tS){
-                t = 1;
+                junction = JunctionType.T1;
                 direction = 2;
             }
             else if(!tN && !tW && tE && !tS){
-                t = 1;
+                junction = JunctionType.T1;
                 direction = 1;
             }
             else if (!tN && tW && !tE && !tS){
-                t = 1;
+                junction = JunctionType.T1;
                 direction = 3;
             }
             else if(tN && !tW && !tE && !tS){
-                t = 1;
+                junction = JunctionType.T1;
                 direction = 0;
             }
-            //2
+            //T2
             else if (tN && tW && !tE && !tS) {
-                t = 2;
+                junction = JunctionType.T2;
                 direction = 3;
             }
             else if (tN && tE && !tW && !tS) {
-                t = 2;
+                junction = JunctionType.T2;
                 direction = 0;
             }
             else if (tS && tW && !tE && !tN) {
-                t = 2;
+                junction = JunctionType.T2;
                 direction = 2;
             }
             else if (tS && tE && !tW && !tN) {
-                t = 2;
+                junction = JunctionType.T2;
                 direction = 1;
             }
-            //3
+            //T3
             else if (tN && tW && tE && !tS) {
-                t = 3;
+                junction = JunctionType.T3;
                 direction = 3;
             }
             else if (tN && tW && !tE && tS) {
-                t = 3;
+                junction = JunctionType.T3;
                 direction = 2;
             }
             else if (tN && !tW && tE && tS) {
-                t = 3;
+                junction = JunctionType.T3;
                 direction = 0;
             }
             else if (!tN && tW && tE && tS) {
-                t = 3;
+                junction = JunctionType.T3;
                 direction = 1;
             }
+            //T4
+            else if (tN && tW && tE && tS){
+                junction = JunctionType.T4;
+                direction = 0;
+            }
             
-
-            this.map.set(i, j, { type: "wall", tIndex: t, direction: direction });
+            this.map.set(i, j, { type: "wall", junction, direction: direction });
         }
     }
 

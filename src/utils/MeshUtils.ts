@@ -6,7 +6,7 @@ export class MeshUtils {
         let root: AbstractMesh | null = null;
 
         for (const m of result.meshes) {
-            m.showBoundingBox = true;
+            // m.showBoundingBox = true;
             m.position = new Vector3(0, 0, 0);
 
             if (m.parent == null) {

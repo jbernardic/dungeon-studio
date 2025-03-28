@@ -1,30 +1,8 @@
-import { Scene, Mesh, MeshBuilder, Color4, Vector3, Color3, FreeCamera, HemisphericLight, SceneLoader, ImportMeshAsync, AbstractMesh, UniversalCamera, Matrix, Space, VertexBuffer, IWheelEvent, Camera, PointerEventTypes, CameraInputTypes, Vector2, TransformNode } from '@babylonjs/core';
+import { Scene, MeshBuilder, Color4, Vector3, Color3, FreeCamera, HemisphericLight, AbstractMesh, PointerEventTypes } from '@babylonjs/core';
 import "@babylonjs/loaders/glTF";
 import { SparseGrid } from '../utils/SparseGrid';
 import { MeshUtils } from '../utils/MeshUtils';
-
-
-enum JunctionType {
-    Base,
-    T0,
-    T1,
-    T2,
-    T3,
-    T4
-}
-
-interface FloorTile {
-    type: "floor";
-}
-
-interface WallTile {
-    type: 'wall'; // etc.
-    direction: number;
-    junction: JunctionType;
-}
-
-type Tile = FloorTile | WallTile;
-
+import { JunctionType, Tile, TileType } from '../types/tileTypes';
 
 export class EditorScene {
     private scene: Scene;
@@ -113,14 +91,14 @@ export class EditorScene {
             this.placeMesh.position.z = z + 0.5;
             this.placeMesh.position.y = y;
 
-            if (this.map.get(x, z)?.type != "floor" && this.paintMode) {
-                this.map.set(x, z, { type: "floor" });
+            if (this.map.get(x, z)?.type != TileType.Floor && this.paintMode) {
+                this.map.set(x, z, { type: TileType.Floor });
 
                 for (let i = x - 1; i <= x + 1; ++i) {
                     for (let j = z - 1; j <= z + 1; ++j) {
                         if (i == x && j == z) continue;
-                        if (this.map.get(i, j)?.type != "floor") {
-                            this.map.set(i, j, { type: "wall", direction: 0, junction: JunctionType.Base });
+                        if (this.map.get(i, j)?.type != TileType.Floor) {
+                            this.map.set(i, j, { type: TileType.Wall, direction: 0, junction: JunctionType.Base });
                         }
                     }
                 }
@@ -129,8 +107,8 @@ export class EditorScene {
                 this.eraseWalls();
 
                 this.map.forEach((i, j, value) => {
-                    console.log(value?.type);
-                    if (value?.type == "wall") {
+                    
+                    if (value?.type == TileType.Wall) {
                         this.placeWall(this.wallMeshes.get(value.junction)!, i, y, j, value.direction);
                     }
                 })
@@ -142,14 +120,14 @@ export class EditorScene {
     private updateMap() {
         const walls: { x: number, y: number }[] = [];
         this.map.forEach((x, y, value) => {
-            if (value?.type == "wall") walls.push({ x, y });
+            if (value?.type == TileType.Wall) walls.push({ x, y });
         });
 
         for (const { x: i, y: j } of walls) {
-            const tN = this.map.get(i, j + 1)?.type == "wall";
-            const tS = this.map.get(i, j - 1)?.type == "wall";
-            const tW = this.map.get(i - 1, j)?.type == "wall";
-            const tE = this.map.get(i + 1, j)?.type == "wall";
+            const tN = this.map.get(i, j + 1)?.type == TileType.Wall;
+            const tS = this.map.get(i, j - 1)?.type == TileType.Wall;
+            const tW = this.map.get(i - 1, j)?.type == TileType.Wall;
+            const tE = this.map.get(i + 1, j)?.type == TileType.Wall;
             
             let junction = JunctionType.T0; //T0 (wall with no connection)
             let direction = 0;
@@ -219,7 +197,7 @@ export class EditorScene {
                 direction = 0;
             }
             
-            this.map.set(i, j, { type: "wall", junction, direction: direction });
+            this.map.set(i, j, { type: TileType.Wall, junction, direction: direction });
         }
     }
 

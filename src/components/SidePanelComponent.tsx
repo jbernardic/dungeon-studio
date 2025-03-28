@@ -17,8 +17,8 @@ const SidePanelComponent = ({
                             <label>
                                 <span>{tileType} </span>
                                 <input
-                                    onChange={() => paintToolStore.setSelectedTile(tileType)}
-                                    checked={paintToolStore.selectedTile === tileType}
+                                    onChange={() => usePaintToolStore.setState({tile: tileType})}
+                                    checked={paintToolStore.tile === tileType}
                                     type="radio"
                                     value={tileType}
                                     name="tileSelection"
@@ -26,7 +26,7 @@ const SidePanelComponent = ({
                             </label>
                         </div>
                     ))}
-                    <div>Selected tile: {paintToolStore.selectedTile}</div>
+                    <div>Selected tile: {paintToolStore.tile}</div>
                 </div>
 
             </form>

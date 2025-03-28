@@ -3,6 +3,7 @@ import "@babylonjs/loaders/glTF";
 import { SparseGrid } from '../utils/SparseGrid';
 import { MeshUtils } from '../utils/MeshUtils';
 import { JunctionType, Tile, TileType } from '../types/tileTypes';
+import { usePaintToolStore } from '../stores/paintToolStore';
 
 export class EditorScene {
     private scene: Scene;
@@ -10,17 +11,21 @@ export class EditorScene {
     private wallMeshes: Map<JunctionType, AbstractMesh> = new Map();
     private camera: FreeCamera;
     private paintMode: boolean = false;
-    private map: SparseGrid<Tile> = new SparseGrid<Tile>();
+    private map: SparseGrid<Tile> = new SparseGrid<Tile>({type: TileType.Empty});
 
     constructor(scene: Scene) {
         this.scene = scene;
 
-        scene.onPointerObservable.add((kbInfo) => {
-            if (kbInfo.type == PointerEventTypes.POINTERDOWN && kbInfo.event.button == 0) {
-                this.paintMode = true;
+        scene.onPointerObservable.add((info) => {
+            if (info.type == PointerEventTypes.POINTERDOWN) {
+                if(info.event.button == 0){
+                    this.paintMode = true;
+                }
             }
-            if (kbInfo.type == PointerEventTypes.POINTERUP && kbInfo.event.button == 0) {
-                this.paintMode = false;
+            if (info.type == PointerEventTypes.POINTERUP) {
+                if(info.event.button == 0){
+                    this.paintMode = false;
+                }
             }
             // if (kbInfo.type == PointerEventTypes.POINTERWHEEL) //scroll
             // {
@@ -39,7 +44,7 @@ export class EditorScene {
         this.camera.keysLeft.push(65);
         this.camera.keysRight.push(68);
         //@ts-ignore
-        this.camera.inputs.attached.mouse.buttons = [2]
+        this.camera.inputs.attached.mouse.buttons = [2];
 
         const canvas = scene.getEngine().getRenderingCanvas();
         this.camera.attachControl(canvas, true);
@@ -77,6 +82,7 @@ export class EditorScene {
     }
 
     update() {
+        
         const pickInfo = this.scene.pick(this.scene.pointerX, this.scene.pointerY,
             (mesh) => mesh.name == "ground"
         );
@@ -91,33 +97,57 @@ export class EditorScene {
             this.placeMesh.position.z = z + 0.5;
             this.placeMesh.position.y = y;
 
-            if (this.map.get(x, z)?.type != TileType.Floor && this.paintMode) {
-                this.map.set(x, z, { type: TileType.Floor });
-
-                for (let i = x - 1; i <= x + 1; ++i) {
-                    for (let j = z - 1; j <= z + 1; ++j) {
-                        if (i == x && j == z) continue;
-                        if (this.map.get(i, j)?.type != TileType.Floor) {
-                            this.map.set(i, j, { type: TileType.Wall, direction: 0, junction: JunctionType.Base });
-                        }
-                    }
-                }
-
-                this.updateMap();
-                this.eraseWalls();
-
-                this.map.forEach((i, j, value) => {
-                    
-                    if (value?.type == TileType.Wall) {
-                        this.placeWall(this.wallMeshes.get(value.junction)!, i, y, j, value.direction);
-                    }
-                })
+            if (this.paintMode) {
+                this.paint(x, y, z);
             }
         }
     }
 
+    private paint(x: number, y: number, z: number){
+        switch(usePaintToolStore.getState().tile){
+            case TileType.Floor:
+                this.setFloorTile(x, z);
+                break;
+            case TileType.Wall:
+                this.setWallTile(x, z);
+                break;
+            case TileType.Empty:
+                this.setEmptyTile(x, z);
+                break;
+        }
 
-    private updateMap() {
+        //TODO - refactor, fix flicker
+        this.updateWalls();
+        this.eraseWallModels();
+        this.map.forEach((i, j, value) => {
+            if (value?.type == TileType.Wall) {
+                this.placeWallModel(this.wallMeshes.get(value.junction)!, i, y, j, value.direction);
+            }
+        })
+    }
+
+    private setEmptyTile(x: number, y: number){
+        this.map.reset(x, y);
+    }
+
+    private setWallTile(x: number, y: number){
+        this.map.set(x, y, { type: TileType.Wall, direction: 0, junction: JunctionType.Base });
+    }
+
+    private setFloorTile(x: number, y: number){
+        this.map.set(x, y, { type: TileType.Floor });
+        //auto-walls
+        for (let i = x - 1; i <= x + 1; ++i) {
+            for (let j = y - 1; j <= y + 1; ++j) {
+                if (i == x && j == y) continue;
+                else if (this.map.get(i, j)?.type == TileType.Empty) {
+                    this.map.set(i, j, { type: TileType.Wall, direction: 0, junction: JunctionType.Base });
+                }
+            }
+        }
+    }
+
+    private updateWalls() {
         const walls: { x: number, y: number }[] = [];
         this.map.forEach((x, y, value) => {
             if (value?.type == TileType.Wall) walls.push({ x, y });
@@ -201,12 +231,12 @@ export class EditorScene {
         }
     }
 
-    private eraseWalls() {
+    private eraseWallModels() {
         const toDispose = this.scene.meshes.filter(mesh => mesh.name.startsWith("Wall ("));
         toDispose.forEach(wall => wall.dispose());
     }
 
-    private placeWall(mesh: AbstractMesh, x: number, y: number, z: number, direction: number) {
+    private placeWallModel(mesh: AbstractMesh, x: number, y: number, z: number, direction: number) {
         const newWall = mesh.clone(`Wall (${x},${z})`, null);
         newWall!.position = new Vector3(x + 0.5, y, z + 0.5);
 

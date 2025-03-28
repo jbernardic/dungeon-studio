@@ -20,7 +20,7 @@ function App() {
     <div className='flex w-full h-screen'>
       <SidePanelComponent className="w-[400px] flex-shrink-0"/>
       <div className='flex-1'>
-        <SceneComponent onSceneReady={onSceneReady} onRender={onRender} style={{width: "100%", height: "100%", outline: "none"}} />
+        <SceneComponent onSceneReady={onSceneReady} onRender={onRender} style={{width: "100%", height: "100%"}} />
       </div>
     </div>
   )

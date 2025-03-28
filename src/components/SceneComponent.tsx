@@ -50,7 +50,7 @@ const SceneComponent: React.FC<SceneComponentProps> = ({
     };
   }, [antialias, engineOptions, adaptToDeviceRatio, sceneOptions, onRender, onSceneReady]);
 
-  return <canvas ref={reactCanvas} {...rest} />;
+  return <canvas ref={reactCanvas} className="focus:outline-4 -outline-offset-4 outline-amber-600" {...rest} />;
 };
 
 export default SceneComponent;

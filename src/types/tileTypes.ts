@@ -1,4 +1,5 @@
 export enum TileType{
+    Empty = "empty",
     Floor = "floor",
     Wall = "wall"
 }
@@ -12,6 +13,10 @@ export enum JunctionType {
     T4
 }
 
+export interface EmptyTile{
+    type: TileType.Empty
+}
+
 export interface FloorTile {
     type: TileType.Floor;
 }
@@ -22,4 +27,4 @@ export interface WallTile {
     junction: JunctionType;
 }
 
-export type Tile = FloorTile | WallTile;
+export type Tile = EmptyTile | FloorTile | WallTile;

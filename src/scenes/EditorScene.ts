@@ -1,4 +1,4 @@
-import { Scene, MeshBuilder, Color4, Vector3, Color3, FreeCamera, HemisphericLight, AbstractMesh, PointerEventTypes } from '@babylonjs/core';
+import { Scene, MeshBuilder, Color4, Vector3, Color3, FreeCamera, HemisphericLight, AbstractMesh, PointerEventTypes, RuntimeError } from '@babylonjs/core';
 import "@babylonjs/loaders/glTF";
 import { SparseGrid } from '../utils/SparseGrid';
 import { MeshUtils } from '../utils/MeshUtils';
@@ -106,24 +106,41 @@ export class EditorScene {
     private paint(x: number, y: number, z: number){
         switch(usePaintToolStore.getState().tile){
             case TileType.Floor:
+                if(this.map.get(x, z).type == TileType.Floor) return;
                 this.setFloorTile(x, z);
                 break;
             case TileType.Wall:
+                if(this.map.get(x, z).type == TileType.Wall) return;
                 this.setWallTile(x, z);
                 break;
             case TileType.Empty:
+                if(this.map.get(x, z).type == TileType.Empty) return;
                 this.setEmptyTile(x, z);
                 break;
         }
 
-        //TODO - refactor, fix flicker
-        this.updateWalls();
-        this.eraseWallModels();
-        this.map.forEach((i, j, value) => {
-            if (value?.type == TileType.Wall) {
-                this.placeWallModel(this.wallMeshes.get(value.junction)!, i, y, j, value.direction);
+        
+        //update wall direction, junction type
+        for(let i = x-1; i<=x+1; ++i){
+            for(let j = z-1; j<=z+1; ++j){
+                const tile = this.map.get(i, j);
+                if(tile.type == TileType.Wall){
+                    this.updateWall(i, j);
+                }
             }
-        })
+        }
+
+        //update meshes
+        for(let i = x-1; i<=x+1; ++i){
+            for(let j = z-1; j<=z+1; ++j){
+                const tile = this.map.get(i, j);
+                this.scene.getMeshByName(`Wall (${i},${j})`)?.dispose();
+
+                if(tile.type == TileType.Wall){
+                    this.placeWallMesh(i, y, j, tile.junction, tile.direction);
+                }
+            }
+        }
     }
 
     private setEmptyTile(x: number, y: number){
@@ -147,97 +164,89 @@ export class EditorScene {
         }
     }
 
-    private updateWalls() {
-        const walls: { x: number, y: number }[] = [];
-        this.map.forEach((x, y, value) => {
-            if (value?.type == TileType.Wall) walls.push({ x, y });
-        });
+    //updates wall direction and junction info
+    private updateWall(i: number, j: number) {
 
-        for (const { x: i, y: j } of walls) {
-            const tN = this.map.get(i, j + 1)?.type == TileType.Wall;
-            const tS = this.map.get(i, j - 1)?.type == TileType.Wall;
-            const tW = this.map.get(i - 1, j)?.type == TileType.Wall;
-            const tE = this.map.get(i + 1, j)?.type == TileType.Wall;
-            
-            let junction = JunctionType.T0; //T0 (wall with no connection)
-            let direction = 0;
-            //Base (horizontal wall)
-            if (tN && tS && !tW && !tE) {
-                junction = JunctionType.Base;
-                direction = 0;
-            }
-            else if (tW && tE && !tN && !tS) {
-                junction = JunctionType.Base;
-                direction = 1;
-            }
-            //T1
-            else if (!tN && !tW && !tE && tS){
-                junction = JunctionType.T1;
-                direction = 2;
-            }
-            else if(!tN && !tW && tE && !tS){
-                junction = JunctionType.T1;
-                direction = 1;
-            }
-            else if (!tN && tW && !tE && !tS){
-                junction = JunctionType.T1;
-                direction = 3;
-            }
-            else if(tN && !tW && !tE && !tS){
-                junction = JunctionType.T1;
-                direction = 0;
-            }
-            //T2
-            else if (tN && tW && !tE && !tS) {
-                junction = JunctionType.T2;
-                direction = 3;
-            }
-            else if (tN && tE && !tW && !tS) {
-                junction = JunctionType.T2;
-                direction = 0;
-            }
-            else if (tS && tW && !tE && !tN) {
-                junction = JunctionType.T2;
-                direction = 2;
-            }
-            else if (tS && tE && !tW && !tN) {
-                junction = JunctionType.T2;
-                direction = 1;
-            }
-            //T3
-            else if (tN && tW && tE && !tS) {
-                junction = JunctionType.T3;
-                direction = 3;
-            }
-            else if (tN && tW && !tE && tS) {
-                junction = JunctionType.T3;
-                direction = 2;
-            }
-            else if (tN && !tW && tE && tS) {
-                junction = JunctionType.T3;
-                direction = 0;
-            }
-            else if (!tN && tW && tE && tS) {
-                junction = JunctionType.T3;
-                direction = 1;
-            }
-            //T4
-            else if (tN && tW && tE && tS){
-                junction = JunctionType.T4;
-                direction = 0;
-            }
-            
-            this.map.set(i, j, { type: TileType.Wall, junction, direction: direction });
+        if(this.map.get(i, j).type != TileType.Wall) throw new Error("Tile is not a wall type.");
+
+        const tN = this.map.get(i, j + 1)?.type == TileType.Wall;
+        const tS = this.map.get(i, j - 1)?.type == TileType.Wall;
+        const tW = this.map.get(i - 1, j)?.type == TileType.Wall;
+        const tE = this.map.get(i + 1, j)?.type == TileType.Wall;
+        
+        let junction = JunctionType.T0; //T0 (wall with no connection)
+        let direction = 0;
+        //Base (horizontal wall)
+        if (tN && tS && !tW && !tE) {
+            junction = JunctionType.Base;
+            direction = 0;
         }
+        else if (tW && tE && !tN && !tS) {
+            junction = JunctionType.Base;
+            direction = 1;
+        }
+        //T1
+        else if (!tN && !tW && !tE && tS){
+            junction = JunctionType.T1;
+            direction = 2;
+        }
+        else if(!tN && !tW && tE && !tS){
+            junction = JunctionType.T1;
+            direction = 1;
+        }
+        else if (!tN && tW && !tE && !tS){
+            junction = JunctionType.T1;
+            direction = 3;
+        }
+        else if(tN && !tW && !tE && !tS){
+            junction = JunctionType.T1;
+            direction = 0;
+        }
+        //T2
+        else if (tN && tW && !tE && !tS) {
+            junction = JunctionType.T2;
+            direction = 3;
+        }
+        else if (tN && tE && !tW && !tS) {
+            junction = JunctionType.T2;
+            direction = 0;
+        }
+        else if (tS && tW && !tE && !tN) {
+            junction = JunctionType.T2;
+            direction = 2;
+        }
+        else if (tS && tE && !tW && !tN) {
+            junction = JunctionType.T2;
+            direction = 1;
+        }
+        //T3
+        else if (tN && tW && tE && !tS) {
+            junction = JunctionType.T3;
+            direction = 3;
+        }
+        else if (tN && tW && !tE && tS) {
+            junction = JunctionType.T3;
+            direction = 2;
+        }
+        else if (tN && !tW && tE && tS) {
+            junction = JunctionType.T3;
+            direction = 0;
+        }
+        else if (!tN && tW && tE && tS) {
+            junction = JunctionType.T3;
+            direction = 1;
+        }
+        //T4
+        else if (tN && tW && tE && tS){
+            junction = JunctionType.T4;
+            direction = 0;
+        }
+        
+        this.map.set(i, j, { type: TileType.Wall, junction, direction: direction });
     }
 
-    private eraseWallModels() {
-        const toDispose = this.scene.meshes.filter(mesh => mesh.name.startsWith("Wall ("));
-        toDispose.forEach(wall => wall.dispose());
-    }
-
-    private placeWallModel(mesh: AbstractMesh, x: number, y: number, z: number, direction: number) {
-        const newWall = mesh.clone(`Wall (${x},${z})`, null);
+    private placeWallMesh(x: number, y: number, z: number, junction: JunctionType, direction: number) {
+        const newWall = this.wallMeshes.get(junction)!.clone(`Wall (${x},${z})`, null);
         newWall!.position = new Vector3(x + 0.5, y, z + 0.5);
 
         newWall!.rotate(new Vector3(0, 1, 0), direction * 0.5 * Math.PI);

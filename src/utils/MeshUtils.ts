@@ -1,4 +1,4 @@
-import { AbstractMesh, ImportMeshAsync, Mesh, Scene, TransformNode, Vector3, VertexBuffer } from "@babylonjs/core";
+import { AbstractMesh, ImportMeshAsync, Scene, TransformNode, Vector3 } from "@babylonjs/core";
 
 export class MeshUtils {
     static async import(path: string, scene: Scene): Promise<AbstractMesh | null> {

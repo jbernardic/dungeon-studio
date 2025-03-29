@@ -30,15 +30,13 @@ export class SparseGrid<T = number> {
       this.grid[x][y] = value;
     }
 
-    forEach(func: (x: number, y: number, value: T) => void | boolean): void {
-      for (const _x in this.grid) {
-          const x = Number(_x);
-          for (const _y in this.grid[x]) {
-              const y = Number(_y);
-              if (func(x, y, this.grid[x][y]) === false) {
-                  return;
-              }
-          }
+    getSquare(x: number, y: number, size: number): {x: number, y: number, value: T}[] {
+      const square: {x: number, y: number, value: T}[] = [];
+      for (let i = x-size; i <= x + size; i++) {
+        for (let j = y-size; j <= y + size; j++) {
+          square.push({x: i, y: j, value: this.get(i, j)});
+        }
       }
-  }
+      return square;
+    }
   }

@@ -1,18 +1,21 @@
 import { Scene, MeshBuilder, Color4, Vector3, Color3, FreeCamera, HemisphericLight, AbstractMesh, PointerEventTypes, DynamicTexture, Texture, StandardMaterial } from '@babylonjs/core';
 import "@babylonjs/loaders/glTF";
-import { SparseGrid } from '../utils/SparseGrid';
-import { MeshUtils } from '../utils/MeshUtils';
+import { SparseGrid } from '../utils/sparseGrid';
+import { MeshUtils } from '../utils/meshUtils';
 import { JunctionType, Tile, TileType, WallTile } from '../types/tileTypes';
 import { usePaintToolStore } from '../stores/paintToolStore';
+import { TileMap } from '../utils/tileMap';
 
 export class EditorScene {
     private scene: Scene;
     private placeMesh: AbstractMesh;
     private wallMeshes: Map<JunctionType, AbstractMesh> = new Map();
     private groundTexture: DynamicTexture;
+    private groundMesh: AbstractMesh;
     private camera: FreeCamera;
     private paintMode: boolean = false;
-    private map: SparseGrid<Tile> = new SparseGrid<Tile>({type: TileType.Empty});
+    private lastPaintedTile: {x: number, y: number} | null = null;
+    private tileMap: TileMap = new TileMap();
 
     constructor(scene: Scene) {
         this.scene = scene;
@@ -26,6 +29,7 @@ export class EditorScene {
             if (info.type == PointerEventTypes.POINTERUP) {
                 if(info.event.button == 0){
                     this.paintMode = false;
+                    this.lastPaintedTile = null;
                 }
             }
             // if (kbInfo.type == PointerEventTypes.POINTERWHEEL) //scroll
@@ -57,9 +61,9 @@ export class EditorScene {
         this.groundTexture.wrapU = Texture.CLAMP_ADDRESSMODE;
         this.groundTexture.wrapV = Texture.CLAMP_ADDRESSMODE;
 
-        const ground = MeshBuilder.CreateGround("ground", { width: 10, height: 10 }, scene);
-        ground.material = new StandardMaterial("groundMaterial", this.scene);
-        (ground.material as StandardMaterial).diffuseTexture = this.groundTexture;
+        this.groundMesh = MeshBuilder.CreateGround("ground", { width: 10, height: 10 }, scene);
+        this.groundMesh.material = new StandardMaterial("groundMaterial", this.scene);
+        (this.groundMesh.material as StandardMaterial).diffuseTexture = this.groundTexture;
 
         this.groundTexture.updateSamplingMode(1);
         const ctx = this.groundTexture.getContext();
@@ -94,6 +98,20 @@ export class EditorScene {
             });
             
         });
+
+        this.tileMap.onTileChange.push( (x: number, y: number, tile: Tile) => {
+            this.scene.getMeshByName(`Wall (${x},${y})`)?.dispose();
+            if (tile.type == TileType.Wall) {
+                this.placeWallMesh(x, this.groundMesh.position.y, y, (tile as WallTile).junction, (tile as WallTile).direction);
+                this.setGroundColor(x, y, Color3.Blue());
+            }
+            else if (tile.type == TileType.Empty) {
+                this.setGroundColor(x, y, Color3.Green());
+            }
+            else if (tile.type == TileType.Floor) {
+                this.setGroundColor(x, y, Color3.Yellow());
+            }
+        });
     }
 
     update() {
@@ -113,50 +131,10 @@ export class EditorScene {
             this.placeMesh.position.y = y;
 
             if (this.paintMode) {
-                this.paint(x, y, z);
-            }
-        }
-    }
-
-    private paint(x: number, y: number, z: number){
-        switch(usePaintToolStore.getState().tile){
-            case TileType.Floor:
-                if(this.map.get(x, z).type == TileType.Floor) return;
-                this.setFloorTile(x, z);
-                break;
-            case TileType.Wall:
-                if(this.map.get(x, z).type == TileType.Wall) return;
-                this.setWallTile(x, z);
-                break;
-            case TileType.Empty:
-                if(this.map.get(x, z).type == TileType.Empty) return;
-                this.setEmptyTile(x, z);
-                break;
-        }
-
-        
-        //update wall direction, junction type, wall mesh
-        // 5x5 area
-        for(let i = x-2; i<=x+2; ++i){
-            for(let j = z-2; j<=z+2; ++j){
-                this.scene.getMeshByName(`Wall (${i},${j})`)?.dispose();
-
-                switch(this.map.get(i, j).type){
-                    case TileType.Wall: {
-                        this.updateWall(i, j);
-                        const tile = this.map.get(i, j) as WallTile;
-                        this.placeWallMesh(i, y, j, tile.junction, tile.direction);
-                        this.setGroundColor(i, j, Color3.Blue());
-                        break;
-                    }
-                    case TileType.Floor: {
-                        this.setGroundColor(i, j, Color3.Yellow());
-                        break;
-                    }
-                    case TileType.Empty: {
-                        this.setGroundColor(i, j, Color3.Green());
-                        break;
-                    }
+                const tileType = usePaintToolStore.getState().tile;
+                if(this.lastPaintedTile?.x != x || this.lastPaintedTile?.y != z){ 
+                    this.tileMap.paintTile(x, z, tileType);
+                    this.lastPaintedTile = {x, y: z};
                 }
             }
         }
@@ -170,108 +148,6 @@ export class EditorScene {
         ctx.fillStyle = color.toHexString();
         ctx.fillRect(x, y, 1, 1);
         this.groundTexture.update();
-    }
-
-    private setEmptyTile(x: number, y: number){
-        this.map.reset(x, y);
-    }
-
-    private setWallTile(x: number, y: number){
-        this.map.set(x, y, { type: TileType.Wall, direction: 0, junction: JunctionType.Base });
-    }
-
-    private setFloorTile(x: number, y: number){
-        this.map.set(x, y, { type: TileType.Floor });
-        //auto-walls
-        for (let i = x - 1; i <= x + 1; ++i) {
-            for (let j = y - 1; j <= y + 1; ++j) {
-                if (i == x && j == y) continue;
-                else if (this.map.get(i, j)?.type == TileType.Empty) {
-                    this.map.set(i, j, { type: TileType.Wall, direction: 0, junction: JunctionType.Base });
-                }
-            }
-        }
-    }
-
-    //updates wall direction and junction info
-    private updateWall(i: number, j: number) {
-
-        if(this.map.get(i, j).type != TileType.Wall) throw new Error("Tile is not a wall type.");
-
-        const tN = this.map.get(i, j + 1)?.type == TileType.Wall;
-        const tS = this.map.get(i, j - 1)?.type == TileType.Wall;
-        const tW = this.map.get(i - 1, j)?.type == TileType.Wall;
-        const tE = this.map.get(i + 1, j)?.type == TileType.Wall;
-        
-        let junction = JunctionType.T0; //T0 (wall with no connection)
-        let direction = 0;
-        //Base (horizontal wall)
-        if (tN && tS && !tW && !tE) {
-            junction = JunctionType.Base;
-            direction = 0;
-        }
-        else if (tW && tE && !tN && !tS) {
-            junction = JunctionType.Base;
-            direction = 1;
-        }
-        //T1
-        else if (!tN && !tW && !tE && tS){
-            junction = JunctionType.T1;
-            direction = 2;
-        }
-        else if(!tN && !tW && tE && !tS){
-            junction = JunctionType.T1;
-            direction = 1;
-        }
-        else if (!tN && tW && !tE && !tS){
-            junction = JunctionType.T1;
-            direction = 3;
-        }
-        else if(tN && !tW && !tE && !tS){
-            junction = JunctionType.T1;
-            direction = 0;
-        }
-        //T2
-        else if (tN && tW && !tE && !tS) {
-            junction = JunctionType.T2;
-            direction = 3;
-        }
-        else if (tN && tE && !tW && !tS) {
-            junction = JunctionType.T2;
-            direction = 0;
-        }
-        else if (tS && tW && !tE && !tN) {
-            junction = JunctionType.T2;
-            direction = 2;
-        }
-        else if (tS && tE && !tW && !tN) {
-            junction = JunctionType.T2;
-            direction = 1;
-        }
-        //T3
-        else if (tN && tW && tE && !tS) {
-            junction = JunctionType.T3;
-            direction = 3;
-        }
-        else if (tN && tW && !tE && tS) {
-            junction = JunctionType.T3;
-            direction = 2;
-        }
-        else if (tN && !tW && tE && tS) {
-            junction = JunctionType.T3;
-            direction = 0;
-        }
-        else if (!tN && tW && tE && tS) {
-            junction = JunctionType.T3;
-            direction = 1;
-        }
-        //T4
-        else if (tN && tW && tE && tS){
-            junction = JunctionType.T4;
-            direction = 0;
-        }
-        
-        this.map.set(i, j, { type: TileType.Wall, junction, direction: direction });
     }
 
     private placeWallMesh(x: number, y: number, z: number, junction: JunctionType, direction: number) {

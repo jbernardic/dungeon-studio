@@ -1,6 +1,5 @@
 import { Scene, MeshBuilder, Color4, Vector3, Color3, FreeCamera, HemisphericLight, AbstractMesh, PointerEventTypes, DynamicTexture, Texture, StandardMaterial } from '@babylonjs/core';
 import "@babylonjs/loaders/glTF";
-import { SparseGrid } from '../utils/sparseGrid';
 import { MeshUtils } from '../utils/meshUtils';
 import { JunctionType, Tile, TileType, WallTile } from '../types/tileTypes';
 import { usePaintToolStore } from '../stores/paintToolStore';

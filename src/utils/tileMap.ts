@@ -60,7 +60,7 @@ export class TileMap extends SparseGrid<Tile> {
                         }
                     });
                     //repaint surrounding floors
-                    this.getSquare(x, y, 1).forEach((tile) => {
+                    this.getSquare(x, y, 2).forEach((tile) => {
                         if(tile.x == x && tile.y == y) return; //skip self
                         if(tile.value.type == TileType.Floor){
                             this.paintTile(tile.x, tile.y, TileType.Floor);

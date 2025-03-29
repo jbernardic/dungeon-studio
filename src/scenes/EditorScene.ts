@@ -1,4 +1,4 @@
-import { Scene, MeshBuilder, Color4, Vector3, Color3, FreeCamera, HemisphericLight, AbstractMesh, PointerEventTypes } from '@babylonjs/core';
+import { Scene, MeshBuilder, Color4, Vector3, Color3, FreeCamera, HemisphericLight, AbstractMesh, PointerEventTypes, DynamicTexture, Texture, StandardMaterial } from '@babylonjs/core';
 import "@babylonjs/loaders/glTF";
 import { SparseGrid } from '../utils/SparseGrid';
 import { MeshUtils } from '../utils/MeshUtils';
@@ -9,6 +9,7 @@ export class EditorScene {
     private scene: Scene;
     private placeMesh: AbstractMesh;
     private wallMeshes: Map<JunctionType, AbstractMesh> = new Map();
+    private groundTexture: DynamicTexture;
     private camera: FreeCamera;
     private paintMode: boolean = false;
     private map: SparseGrid<Tile> = new SparseGrid<Tile>({type: TileType.Empty});
@@ -52,7 +53,21 @@ export class EditorScene {
         const light = new HemisphericLight("light", new Vector3(0, 1, 0), scene);
         light.intensity = 0.7;
 
-        MeshBuilder.CreateGround("ground", { width: 10, height: 10 }, scene);
+        this.groundTexture = new DynamicTexture("groundDynamicTexture", 10, scene, true);
+        this.groundTexture.wrapU = Texture.CLAMP_ADDRESSMODE;
+        this.groundTexture.wrapV = Texture.CLAMP_ADDRESSMODE;
+
+        const ground = MeshBuilder.CreateGround("ground", { width: 10, height: 10 }, scene);
+        ground.material = new StandardMaterial("groundMaterial", this.scene);
+        (ground.material as StandardMaterial).diffuseTexture = this.groundTexture;
+
+        this.groundTexture.updateSamplingMode(1);
+        const ctx = this.groundTexture.getContext();
+        ctx.fillStyle = Color3.Green().toHexString();
+        ctx.fillRect(0, 0, this.groundTexture.getSize().width, this.groundTexture.getSize().height);
+
+        this.groundTexture.update();
+
         this.createGridLines(1, 10);
 
         this.placeMesh = MeshBuilder.CreateBox("placeMesh", { size: 0.5, faceColors: Array(6).fill(new Color4(0.5, 1, 0.5, 1)) }, scene);
@@ -125,25 +140,36 @@ export class EditorScene {
         for(let i = x-2; i<=x+2; ++i){
             for(let j = z-2; j<=z+2; ++j){
                 this.scene.getMeshByName(`Wall (${i},${j})`)?.dispose();
-                if(this.map.get(i, j).type == TileType.Wall){
-                    this.updateWall(i, j);
-                    const tile = this.map.get(i, j) as WallTile;
-                    this.placeWallMesh(i, y, j, tile.junction, tile.direction);
+
+                switch(this.map.get(i, j).type){
+                    case TileType.Wall: {
+                        this.updateWall(i, j);
+                        const tile = this.map.get(i, j) as WallTile;
+                        this.placeWallMesh(i, y, j, tile.junction, tile.direction);
+                        this.setGroundColor(i, j, Color3.Blue());
+                        break;
+                    }
+                    case TileType.Floor: {
+                        this.setGroundColor(i, j, Color3.Yellow());
+                        break;
+                    }
+                    case TileType.Empty: {
+                        this.setGroundColor(i, j, Color3.Green());
+                        break;
+                    }
                 }
             }
         }
+    }
 
-        //update meshes
-        // for(let i = x-1; i<=x+1; ++i){
-        //     for(let j = z-1; j<=z+1; ++j){
-        //         const tile = this.map.get(i, j);
-        //         this.scene.getMeshByName(`Wall (${i},${j})`)?.dispose();
-
-        //         if(tile.type == TileType.Wall){
-        //             this.placeWallMesh(i, y, j, tile.junction, tile.direction);
-        //         }
-        //     }
-        // }
+    private setGroundColor(x: number, y: number, color: Color3){
+        x+=5;
+        y+=5;
+        y = 10-y-1;
+        const ctx = this.groundTexture.getContext();
+        ctx.fillStyle = color.toHexString();
+        ctx.fillRect(x, y, 1, 1);
+        this.groundTexture.update();
     }
 
     private setEmptyTile(x: number, y: number){

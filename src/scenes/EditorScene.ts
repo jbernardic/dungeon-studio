@@ -1,8 +1,8 @@
-import { Scene, MeshBuilder, Color4, Vector3, Color3, FreeCamera, HemisphericLight, AbstractMesh, PointerEventTypes, RuntimeError } from '@babylonjs/core';
+import { Scene, MeshBuilder, Color4, Vector3, Color3, FreeCamera, HemisphericLight, AbstractMesh, PointerEventTypes } from '@babylonjs/core';
 import "@babylonjs/loaders/glTF";
 import { SparseGrid } from '../utils/SparseGrid';
 import { MeshUtils } from '../utils/MeshUtils';
-import { JunctionType, Tile, TileType } from '../types/tileTypes';
+import { JunctionType, Tile, TileType, WallTile } from '../types/tileTypes';
 import { usePaintToolStore } from '../stores/paintToolStore';
 
 export class EditorScene {
@@ -120,27 +120,30 @@ export class EditorScene {
         }
 
         
-        //update wall direction, junction type
-        for(let i = x-1; i<=x+1; ++i){
-            for(let j = z-1; j<=z+1; ++j){
-                const tile = this.map.get(i, j);
-                if(tile.type == TileType.Wall){
+        //update wall direction, junction type, wall mesh
+        // 5x5 area
+        for(let i = x-2; i<=x+2; ++i){
+            for(let j = z-2; j<=z+2; ++j){
+                this.scene.getMeshByName(`Wall (${i},${j})`)?.dispose();
+                if(this.map.get(i, j).type == TileType.Wall){
                     this.updateWall(i, j);
+                    const tile = this.map.get(i, j) as WallTile;
+                    this.placeWallMesh(i, y, j, tile.junction, tile.direction);
                 }
             }
         }
 
         //update meshes
-        for(let i = x-1; i<=x+1; ++i){
-            for(let j = z-1; j<=z+1; ++j){
-                const tile = this.map.get(i, j);
-                this.scene.getMeshByName(`Wall (${i},${j})`)?.dispose();
+        // for(let i = x-1; i<=x+1; ++i){
+        //     for(let j = z-1; j<=z+1; ++j){
+        //         const tile = this.map.get(i, j);
+        //         this.scene.getMeshByName(`Wall (${i},${j})`)?.dispose();
 
-                if(tile.type == TileType.Wall){
-                    this.placeWallMesh(i, y, j, tile.junction, tile.direction);
-                }
-            }
-        }
+        //         if(tile.type == TileType.Wall){
+        //             this.placeWallMesh(i, y, j, tile.junction, tile.direction);
+        //         }
+        //     }
+        // }
     }
 
     private setEmptyTile(x: number, y: number){

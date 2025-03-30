@@ -1,10 +1,16 @@
-import { Scene, MeshBuilder, Color4, Vector3, Color3, FreeCamera, HemisphericLight, AbstractMesh, PointerEventTypes, DynamicTexture, Texture, StandardMaterial } from '@babylonjs/core';
+import { Scene, MeshBuilder, Color4, Vector3, Color3, FreeCamera, HemisphericLight, AbstractMesh, PointerEventTypes, DynamicTexture, Texture, DirectionalLight } from '@babylonjs/core';
 import "@babylonjs/loaders/glTF";
 import { MeshUtils } from '../utils/meshUtils';
 import { JunctionType, Tile, TileType, WallTile } from '../types/tileTypes';
 import { usePaintToolStore } from '../stores/paintToolStore';
 import { TileMap } from '../utils/tileMap';
-import { GridMaterial } from '@babylonjs/materials';
+import { GridMaterial, SimpleMaterial, SkyMaterial } from '@babylonjs/materials';
+
+class DebugTileColors{
+    static readonly Empty = new Color3(0.5, 0.5, 0.5);
+    static readonly Floor = new Color3(1, 1, 0);
+    static readonly Wall = new Color3(0, 0, 1);
+}
 
 export class EditorScene {
     private scene: Scene;
@@ -53,28 +59,42 @@ export class EditorScene {
         const canvas = scene.getEngine().getRenderingCanvas();
         this.camera.attachControl(canvas, true);
 
-        const light = new HemisphericLight("light", new Vector3(0, 1, 0), scene);
-        light.intensity = 0.7;
+        // Hemispheric Light (ambient light)
+        const light1 = new HemisphericLight("light1", new Vector3(0, 1, 0), scene);
+        light1.intensity = 1;
 
+        // Directional Light (like sunlight)
+        const light2 = new DirectionalLight("light2", new Vector3(-1, -1, -1), scene);
+        light2.position = new Vector3(5, 10, 5);
+        light2.intensity = 0.8;
 
         const groundSize = 1000;
 
+        //Skybox
+        const skyMaterial = new SkyMaterial("skyMaterial", scene);
+        skyMaterial.backFaceCulling = false;
+        skyMaterial.inclination = 10; //angle of the sun
+
+        const skybox = MeshBuilder.CreateBox("skyBox", { size: groundSize }, scene);
+        skybox.material = skyMaterial;
+
+        //Ground
         this.groundTexture = new DynamicTexture("groundDynamicTexture", groundSize, scene, true);
         this.groundTexture.wrapU = Texture.CLAMP_ADDRESSMODE;
         this.groundTexture.wrapV = Texture.CLAMP_ADDRESSMODE;
 
         this.groundMesh = MeshBuilder.CreateGround("ground", { width: groundSize, height: groundSize }, scene);
-
-        this.groundMesh.material = new StandardMaterial("groundMaterial", scene);
-        (this.groundMesh.material as StandardMaterial).diffuseTexture = this.groundTexture;
+        this.groundMesh.material = new SimpleMaterial("groundMaterial", scene);
+        (this.groundMesh.material as SimpleMaterial).diffuseTexture = this.groundTexture;
 
         this.groundTexture.updateSamplingMode(1);
         const ctx = this.groundTexture.getContext();
-        ctx.fillStyle = Color3.Green().toHexString();
+        ctx.fillStyle = DebugTileColors.Empty.toHexString();
         ctx.fillRect(0, 0, this.groundTexture.getSize().width, this.groundTexture.getSize().height);
 
         this.groundTexture.update();
 
+        //Grid
         const gridMesh = MeshBuilder.CreateGround("grid", { width: groundSize, height: groundSize }, scene);
         const gridMaterial = new GridMaterial("grid", scene);
         gridMaterial.gridRatio = 1;
@@ -115,13 +135,13 @@ export class EditorScene {
             this.scene.getMeshByName(`Wall (${x},${y})`)?.dispose();
             if (tile.type == TileType.Wall) {
                 this.placeWallMesh(x, this.groundMesh.position.y, y, (tile as WallTile).junction, (tile as WallTile).direction);
-                this.setGroundColor(x, y, Color3.Blue());
+                this.setGroundColor(x, y, DebugTileColors.Wall);
             }
             else if (tile.type == TileType.Empty) {
-                this.setGroundColor(x, y, Color3.Green());
+                this.setGroundColor(x, y, DebugTileColors.Empty);
             }
             else if (tile.type == TileType.Floor) {
-                this.setGroundColor(x, y, Color3.Yellow());
+                this.setGroundColor(x, y, DebugTileColors.Floor);
             }
         });
     }
@@ -170,5 +190,6 @@ export class EditorScene {
 
         newWall!.rotate(new Vector3(0, 1, 0), direction * 0.5 * Math.PI);
         newWall?.setEnabled(true);
+        return newWall;
     }
 }

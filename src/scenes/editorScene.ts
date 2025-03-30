@@ -98,7 +98,7 @@ export class EditorScene {
         const gridMesh = MeshBuilder.CreateGround("grid", { width: groundSize, height: groundSize }, scene);
         const gridMaterial = new GridMaterial("grid", scene);
         gridMaterial.gridRatio = 1;
-        gridMaterial.majorUnitFrequency = 2;
+        gridMaterial.majorUnitFrequency = 3;
         // gridMaterial.gridOffset = new Vector3(groundSize, groundSize, groundSize);
         gridMaterial.opacity = 0.99;
         gridMaterial.alpha = 1;

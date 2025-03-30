@@ -1,32 +1,19 @@
-import { Vector3 } from "@babylonjs/core";
 import { JunctionType, Tile, TileType, WallTile } from "../types/tileTypes";
 import { SparseGrid } from "./sparseGrid";
 import { isEqual } from "lodash"
 
 export class TileMap extends SparseGrid<Tile> {
-
-    readonly onTileChange: ((x: number, y: number, tile: Tile) => void)[] = [];
+    readonly tileChanges: SparseGrid<Tile> = new SparseGrid<Tile>({type: TileType.Empty});
 
     constructor() {
         super({ type: TileType.Empty });
     }
 
-
-    // Gets tiles in a square area around the given location
-    // with the specified render distance.
-    getVisibleTiles(location: Vector3, renderDistance: number): { tile: Tile, x: number, y: number }[] {
-        const center = location.floor();
-        const tiles = [];
-        for (let i = center.x - renderDistance; i <= center.x + renderDistance; ++i) {
-            for (let j = center.z - renderDistance; j <= center.z + renderDistance; ++j) {
-                tiles.push({
-                    tile: this.get(i, j),
-                    x: i,
-                    y: j,
-                });
-            }
-        }
-        return tiles;
+    pollTileChanges() {
+        const changes = this.tileChanges.getAll();
+        console.log(`TileMap: ${changes.length} tile changes`);
+        this.tileChanges.clear(); //clear the tile changes after polling
+        return changes;
     }
 
     // Sets a tile at the specified coordinates.
@@ -53,14 +40,11 @@ export class TileMap extends SparseGrid<Tile> {
         this.getSquare(x, y, 2).forEach((tile) => this.removeUntiedWalls(tile.x, tile.y)); //5x5 area
         this.getSquare(x, y, 2).forEach((tile) => this.updateWall(tile.x, tile.y)); //5x5 area
 
-        let changeCount = 0;
         for(const tile of oldTiles) {
             if(!isEqual(tile.value, this.get(tile.x, tile.y))) {
-                this.onTileChange.forEach((callback) => callback(tile.x, tile.y, this.get(tile.x, tile.y)));
-                changeCount++;
+                this.tileChanges.set(tile.x, tile.y, this.get(tile.x, tile.y));
             }
         }
-        console.log(`TileMap: ${changeCount} tiles changed`);
     }
 
     //removes walls that are not tied to a floor but were previously

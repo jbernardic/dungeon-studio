@@ -130,26 +130,6 @@ export class EditorScene {
             });
             
         });
-
-        this.tileMap.onTileChange.push( (x: number, y: number, tile: Tile) => {
-            this.scene.getMeshByName(`Wall (${x},${y})`)?.dispose();
-            if (tile.type == TileType.Wall) {
-                this.placeWallMesh(x, this.groundMesh.position.y, y, (tile as WallTile).junction, (tile as WallTile).direction);
-                if(tile.tiedToFloor){
-                    this.setGroundColor(x, y, Color3.Red());
-                }
-                else {
-                    this.setGroundColor(x, y, DebugTileColors.Wall);
-                }
-                
-            }
-            else if (tile.type == TileType.Empty) {
-                this.setGroundColor(x, y, DebugTileColors.Empty);
-            }
-            else if (tile.type == TileType.Floor) {
-                this.setGroundColor(x, y, DebugTileColors.Floor);
-            }
-        });
     }
 
     update() {
@@ -173,8 +153,32 @@ export class EditorScene {
                 if(this.lastPaintedTile?.x != x || this.lastPaintedTile?.y != z){                    
                     this.tileMap.placeTile(x, z, tileType);
                     this.lastPaintedTile = {x, y: z};
+
+                    this.tileMap.pollTileChanges().forEach(({x, y, value}) => {
+                        this.handleTileChange(x, y, value);
+                    });
                 }
             }
+        }
+    }
+
+    private handleTileChange(x: number, y: number, tile: Tile){
+        this.scene.getMeshByName(`Wall (${x},${y})`)?.dispose();
+        if (tile.type == TileType.Wall) {
+            this.placeWallMesh(x, this.groundMesh.position.y, y, (tile as WallTile).junction, (tile as WallTile).direction);
+            if(tile.tiedToFloor){
+                this.setGroundColor(x, y, Color3.Red());
+            }
+            else {
+                this.setGroundColor(x, y, DebugTileColors.Wall);
+            }
+            
+        }
+        else if (tile.type == TileType.Empty) {
+            this.setGroundColor(x, y, DebugTileColors.Empty);
+        }
+        else if (tile.type == TileType.Floor) {
+            this.setGroundColor(x, y, DebugTileColors.Floor);
         }
     }
 

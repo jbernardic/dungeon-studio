@@ -1,4 +1,4 @@
-export class SparseGrid<T = number> { 
+export class SparseGrid<T = number> {
     private grid: { [x: number]: { [y: number]: T } } = {};
     private defaultValue: T;
 
@@ -50,4 +50,8 @@ export class SparseGrid<T = number> {
       }
       return all;
     }
+
+    clear() {
+      this.grid = {};
+    } 
   }

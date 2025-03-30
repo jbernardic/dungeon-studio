@@ -98,8 +98,8 @@ export class EditorScene {
         const gridMesh = MeshBuilder.CreateGround("grid", { width: groundSize, height: groundSize }, scene);
         const gridMaterial = new GridMaterial("grid", scene);
         gridMaterial.gridRatio = 1;
-        gridMaterial.majorUnitFrequency = 0;
-        gridMaterial.gridOffset = new Vector3(groundSize, groundSize, groundSize);
+        gridMaterial.majorUnitFrequency = 2;
+        // gridMaterial.gridOffset = new Vector3(groundSize, groundSize, groundSize);
         gridMaterial.opacity = 0.99;
         gridMaterial.alpha = 1;
         gridMaterial.lineColor = new Color3(0, 0, 0);
@@ -135,7 +135,13 @@ export class EditorScene {
             this.scene.getMeshByName(`Wall (${x},${y})`)?.dispose();
             if (tile.type == TileType.Wall) {
                 this.placeWallMesh(x, this.groundMesh.position.y, y, (tile as WallTile).junction, (tile as WallTile).direction);
-                this.setGroundColor(x, y, DebugTileColors.Wall);
+                if(tile.tiedToFloor){
+                    this.setGroundColor(x, y, Color3.Red());
+                }
+                else {
+                    this.setGroundColor(x, y, DebugTileColors.Wall);
+                }
+                
             }
             else if (tile.type == TileType.Empty) {
                 this.setGroundColor(x, y, DebugTileColors.Empty);
@@ -164,8 +170,8 @@ export class EditorScene {
 
             if (this.paintMode) {
                 const tileType = usePaintToolStore.getState().tile;
-                if(this.lastPaintedTile?.x != x || this.lastPaintedTile?.y != z){ 
-                    this.tileMap.paintTile(x, z, tileType);
+                if(this.lastPaintedTile?.x != x || this.lastPaintedTile?.y != z){                    
+                    this.tileMap.placeTile(x, z, tileType);
                     this.lastPaintedTile = {x, y: z};
                 }
             }

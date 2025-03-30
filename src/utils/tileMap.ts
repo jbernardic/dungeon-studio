@@ -1,6 +1,7 @@
 import { Vector3 } from "@babylonjs/core";
-import { JunctionType, Tile, TileType } from "../types/tileTypes";
+import { JunctionType, Tile, TileType, WallTile } from "../types/tileTypes";
 import { SparseGrid } from "./sparseGrid";
+import { isEqual } from "lodash"
 
 export class TileMap extends SparseGrid<Tile> {
 
@@ -32,59 +33,67 @@ export class TileMap extends SparseGrid<Tile> {
     // If the tile is a floor, it will also add surrounding walls.
     // If the tile is empty, it will remove surrounding walls if the replaced tile is a floor.
     // It will also update the wall direction and junction info for surrounding walls.
-    paintTile(x: number, y: number, tileType: TileType): void {
+    placeTile(x: number, y: number, tileType: TileType): void {
+
+        const oldTiles = this.getSquare(x, y, 2); //5x5 area
+
         switch (tileType) {
             case TileType.Wall:
-                this.set(x, y, {type: TileType.Wall, direction: 0, junction: JunctionType.Base});
+                this.set(x, y, {type: TileType.Wall, direction: 0, junction: JunctionType.Base, tiedToFloor: false});
                 break;
             case TileType.Floor:
                 this.set(x, y, {type: TileType.Floor});
-
-                //surrounding walls
-                this.getSquare(x, y, 1).forEach((tile) => {
-                    if (tile.value.type == TileType.Empty) {
-                        this.paintTile(tile.x, tile.y, TileType.Wall);
-                    }
-                });
                 break;
             case TileType.Empty:
-                const type = this.get(x, y).type;
                 this.set(x, y, {type: TileType.Empty});
-                //remove surrounding walls if replaced tile is a floor
-                if(type == TileType.Floor) {
-                    //remove surrounding walls
-                    this.getSquare(x, y, 1).forEach((tile) => {
-                        if(tile.x == x && tile.y == y) return; //skip self
-                        if (tile.value.type == TileType.Wall) {
-                            this.paintTile(tile.x, tile.y, TileType.Empty);
-                        }
-                    });
-                    //repaint surrounding floors
-                    this.getSquare(x, y, 2).forEach((tile) => {
-                        if(tile.x == x && tile.y == y) return; //skip self
-                        if(tile.value.type == TileType.Floor){
-                            this.paintTile(tile.x, tile.y, TileType.Floor);
-                        }
-                    });
-                }
-                
                 break;
         }
 
-        this.getSquare(x, y, 1).forEach((tile) => { //3x3 area
-            if (tile.value.type == TileType.Wall) {
-                this.updateWall(tile.x, tile.y);
+        this.getSquare(x, y, 2).forEach((tile) => this.updateFloor(tile.x, tile.y)); //5x5 area
+        this.getSquare(x, y, 2).forEach((tile) => this.removeUntiedWalls(tile.x, tile.y)); //5x5 area
+        this.getSquare(x, y, 2).forEach((tile) => this.updateWall(tile.x, tile.y)); //5x5 area
+
+        let changeCount = 0;
+        for(const tile of oldTiles) {
+            if(!isEqual(tile.value, this.get(tile.x, tile.y))) {
+                this.onTileChange.forEach((callback) => callback(tile.x, tile.y, this.get(tile.x, tile.y)));
+                changeCount++;
             }
-            this.onTileChange.forEach((callback) => {
-                callback(tile.x, tile.y, this.get(tile.x, tile.y));
-            });
+        }
+        console.log(`TileMap: ${changeCount} tiles changed`);
+    }
+
+    //removes walls that are not tied to a floor but were previously
+    private removeUntiedWalls(x: number, y: number) {
+        const {i, j} = {i: x, j: y};
+        const tiedToFloor = this.get(i, j + 1).type == TileType.Floor ||
+            this.get(i, j - 1).type == TileType.Floor ||
+            this.get(i - 1, j).type == TileType.Floor ||
+            this.get(i + 1, j).type == TileType.Floor ||
+            this.get(i - 1, j + 1).type == TileType.Floor ||
+            this.get(i + 1, j + 1).type == TileType.Floor ||
+            this.get(i - 1, j - 1).type == TileType.Floor ||
+            this.get(i + 1, j - 1).type == TileType.Floor;
+
+        if((this.get(i, j) as WallTile).tiedToFloor && !tiedToFloor) {
+            this.set(i, j, { type: TileType.Empty });
+        }
+    }
+
+    //adds surrounding walls if the tile is a floor
+    private updateFloor(x: number, y: number) {
+        if(this.get(x, y).type != TileType.Floor) return; //skip if not a floor
+        this.getSquare(x, y, 1).forEach((tile) => {
+            if (tile.value.type == TileType.Empty) {
+                this.set(tile.x, tile.y, {type: TileType.Wall, direction: 0, junction: JunctionType.Base, tiedToFloor: true});
+            }
         });
     }
 
     //updates wall direction and junction info
     private updateWall(x: number, y: number) {
         const {i, j} = {i: x, j: y};
-        if(this.get(i, j).type != TileType.Wall) throw new Error("Tile is not a wall type.");
+        if(this.get(i, j).type != TileType.Wall) return; //skip if not a wall
 
         const tN = this.get(i, j + 1)?.type == TileType.Wall;
         const tS = this.get(i, j - 1)?.type == TileType.Wall;
@@ -159,6 +168,15 @@ export class TileMap extends SparseGrid<Tile> {
             direction = 0;
         }
 
-        this.set(i, j, { type: TileType.Wall, junction, direction: direction });
+        const tiedToFloor = this.get(i, j + 1).type == TileType.Floor ||
+            this.get(i, j - 1).type == TileType.Floor ||
+            this.get(i - 1, j).type == TileType.Floor ||
+            this.get(i + 1, j).type == TileType.Floor ||
+            this.get(i - 1, j + 1).type == TileType.Floor ||
+            this.get(i + 1, j + 1).type == TileType.Floor ||
+            this.get(i - 1, j - 1).type == TileType.Floor ||
+            this.get(i + 1, j - 1).type == TileType.Floor;
+
+        this.set(i, j, { type: TileType.Wall, junction, direction: direction, tiedToFloor });
     }
 }

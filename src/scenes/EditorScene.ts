@@ -4,6 +4,7 @@ import { MeshUtils } from '../utils/meshUtils';
 import { JunctionType, Tile, TileType, WallTile } from '../types/tileTypes';
 import { usePaintToolStore } from '../stores/paintToolStore';
 import { TileMap } from '../utils/tileMap';
+import { GridMaterial } from '@babylonjs/materials';
 
 export class EditorScene {
     private scene: Scene;
@@ -18,7 +19,6 @@ export class EditorScene {
 
     constructor(scene: Scene) {
         this.scene = scene;
-
         scene.onPointerObservable.add((info) => {
             if (info.type == PointerEventTypes.POINTERDOWN) {
                 if(info.event.button == 0){
@@ -56,12 +56,16 @@ export class EditorScene {
         const light = new HemisphericLight("light", new Vector3(0, 1, 0), scene);
         light.intensity = 0.7;
 
-        this.groundTexture = new DynamicTexture("groundDynamicTexture", 10, scene, true);
+
+        const groundSize = 1000;
+
+        this.groundTexture = new DynamicTexture("groundDynamicTexture", groundSize, scene, true);
         this.groundTexture.wrapU = Texture.CLAMP_ADDRESSMODE;
         this.groundTexture.wrapV = Texture.CLAMP_ADDRESSMODE;
 
-        this.groundMesh = MeshBuilder.CreateGround("ground", { width: 10, height: 10 }, scene);
-        this.groundMesh.material = new StandardMaterial("groundMaterial", this.scene);
+        this.groundMesh = MeshBuilder.CreateGround("ground", { width: groundSize, height: groundSize }, scene);
+
+        this.groundMesh.material = new StandardMaterial("groundMaterial", scene);
         (this.groundMesh.material as StandardMaterial).diffuseTexture = this.groundTexture;
 
         this.groundTexture.updateSamplingMode(1);
@@ -71,7 +75,16 @@ export class EditorScene {
 
         this.groundTexture.update();
 
-        this.createGridLines(1, 10);
+        const gridMesh = MeshBuilder.CreateGround("grid", { width: groundSize, height: groundSize }, scene);
+        const gridMaterial = new GridMaterial("grid", scene);
+        gridMaterial.gridRatio = 1;
+        gridMaterial.majorUnitFrequency = 0;
+        gridMaterial.gridOffset = new Vector3(groundSize, groundSize, groundSize);
+        gridMaterial.opacity = 0.99;
+        gridMaterial.alpha = 1;
+        gridMaterial.lineColor = new Color3(0, 0, 0);
+        gridMesh.material = gridMaterial
+        gridMesh.position.y = 0.01;
 
         this.placeMesh = MeshBuilder.CreateBox("placeMesh", { size: 0.5, faceColors: Array(6).fill(new Color4(0.5, 1, 0.5, 1)) }, scene);
         this.placeMesh.setEnabled(false);
@@ -140,9 +153,11 @@ export class EditorScene {
     }
 
     private setGroundColor(x: number, y: number, color: Color3){
-        x+=5;
-        y+=5;
-        y = 10-y-1;
+        const groundSize = this.groundTexture.getSize();
+        const groundCorner = { x: this.groundMesh.position.x - groundSize.width/2, y: this.groundMesh.position.z - groundSize.height/2 };
+        x = x - groundCorner.x;
+        y = y - groundCorner.y;
+        y = groundSize.height - y - 1; //flip y axis
         const ctx = this.groundTexture.getContext();
         ctx.fillStyle = color.toHexString();
         ctx.fillRect(x, y, 1, 1);
@@ -155,33 +170,5 @@ export class EditorScene {
 
         newWall!.rotate(new Vector3(0, 1, 0), direction * 0.5 * Math.PI);
         newWall?.setEnabled(true);
-    }
-
-    private createGridLines(gridSize: number, gridLength: number) {
-        const gridLines = [];
-
-        // Create vertical grid lines
-        for (let i = -gridLength / 2; i <= gridLength / 2; i += gridSize) {
-            const points = [
-                new Vector3(i, 0, -gridLength / 2),
-                new Vector3(i, 0, gridLength / 2),
-            ];
-            const line = MeshBuilder.CreateLines("verticalLine" + i, { points: points }, this.scene);
-            line.color = new Color3(0, 0, 0); // Set line color (black)
-            gridLines.push(line);
-        }
-
-        // Create horizontal grid lines
-        for (let i = -gridLength / 2; i <= gridLength / 2; i += gridSize) {
-            const points = [
-                new Vector3(-gridLength / 2, 0, i),
-                new Vector3(gridLength / 2, 0, i),
-            ];
-            const line = MeshBuilder.CreateLines("horizontalLine" + i, { points: points }, this.scene);
-            line.color = new Color3(0, 0, 0); // Set line color (black)
-            gridLines.push(line);
-        }
-
-        return gridLines;
     }
 }

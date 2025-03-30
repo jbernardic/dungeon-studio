@@ -40,4 +40,14 @@ export class SparseGrid<T = number> {
       }
       return square;
     }
+
+    getAll(): {x: number, y: number, value: T}[] {
+      const all: {x: number, y: number, value: T}[] = [];
+      for (const x in this.grid) {
+        for (const y in this.grid[x]) {
+          all.push({x: parseInt(x), y: parseInt(y), value: this.grid[x][y]});
+        }
+      }
+      return all;
+    }
   }

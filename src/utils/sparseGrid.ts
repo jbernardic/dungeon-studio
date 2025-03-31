@@ -29,7 +29,7 @@ export class SparseGrid<T = number> {
       this.initCell(x, y);
       this.grid[x][y] = value;
     }
-    
+
     // size is the distance from the center to the edge of the square
     getSquare(x: number, y: number, size: number): {x: number, y: number, value: T}[] {
       const square: {x: number, y: number, value: T}[] = [];

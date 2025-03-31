@@ -1,5 +1,5 @@
 import { Vector2 } from "@babylonjs/core";
-import { JunctionType, Tile, TileType, WallTile } from "../types/tileTypes";
+import { JunctionType, Tile, TileType } from "../types/tileTypes";
 import { SparseGrid } from "./sparseGrid";
 import { isEqual } from "lodash"
 
@@ -169,21 +169,21 @@ export class TileMap extends SparseGrid<Tile> {
     }
 
     //removes walls that are not tied to a floor but were previously
-    private removeUntiedWall(x: number, y: number) {
-        const {i, j} = {i: x, j: y};
-        const tiedToFloor = this.get(i, j + 1).type == TileType.Floor ||
-            this.get(i, j - 1).type == TileType.Floor ||
-            this.get(i - 1, j).type == TileType.Floor ||
-            this.get(i + 1, j).type == TileType.Floor ||
-            this.get(i - 1, j + 1).type == TileType.Floor ||
-            this.get(i + 1, j + 1).type == TileType.Floor ||
-            this.get(i - 1, j - 1).type == TileType.Floor ||
-            this.get(i + 1, j - 1).type == TileType.Floor;
+    // private removeUntiedWall(x: number, y: number) {
+    //     const {i, j} = {i: x, j: y};
+    //     const tiedToFloor = this.get(i, j + 1).type == TileType.Floor ||
+    //         this.get(i, j - 1).type == TileType.Floor ||
+    //         this.get(i - 1, j).type == TileType.Floor ||
+    //         this.get(i + 1, j).type == TileType.Floor ||
+    //         this.get(i - 1, j + 1).type == TileType.Floor ||
+    //         this.get(i + 1, j + 1).type == TileType.Floor ||
+    //         this.get(i - 1, j - 1).type == TileType.Floor ||
+    //         this.get(i + 1, j - 1).type == TileType.Floor;
 
-        if((this.get(i, j) as WallTile).tiedToFloor && !tiedToFloor) {
-            this.set(i, j, { type: TileType.Empty });
-        }
-    }
+    //     if((this.get(i, j) as WallTile).tiedToFloor && !tiedToFloor) {
+    //         this.set(i, j, { type: TileType.Empty });
+    //     }
+    // }
 
     //surround floor tile with walls
     private updateFloor(x: number, y: number){

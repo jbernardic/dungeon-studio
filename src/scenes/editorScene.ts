@@ -195,11 +195,13 @@ export class EditorScene {
     }
 
     private placeWallMesh(x: number, y: number, z: number, junction: JunctionType, direction: number) {
+        const wallScale = 1;
         const newWall = this.wallMeshes.get(junction)!.clone(`Wall (${x},${z})`, null);
         newWall!.position = new Vector3(x + 0.5, y, z + 0.5);
 
         newWall!.rotate(new Vector3(0, 1, 0), direction * 0.5 * Math.PI);
         newWall?.setEnabled(true);
+        newWall?.scaling.multiplyInPlace(new Vector3(wallScale, wallScale, wallScale));
         return newWall;
     }
 }

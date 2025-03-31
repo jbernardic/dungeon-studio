@@ -41,6 +41,16 @@ export class SparseGrid<T = number> {
       return square;
     }
 
+    getNeighbors(x: number, y: number): {x: number, y: number, value: T}[] {
+      const neighbors: {x: number, y: number, value: T}[] = [
+        {x: x-1, y: y, value: this.get(x-1, y)}, // left
+        {x: x+1, y: y, value: this.get(x+1, y)}, // right
+        {x: x, y: y-1, value: this.get(x, y-1)}, // up
+        {x: x, y: y+1, value: this.get(x, y+1)}  // down
+      ];
+      return neighbors;
+    }
+
     getAll(): {x: number, y: number, value: T}[] {
       const all: {x: number, y: number, value: T}[] = [];
       for (const x in this.grid) {

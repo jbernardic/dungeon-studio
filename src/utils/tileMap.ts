@@ -1,3 +1,4 @@
+import { Vector2 } from "@babylonjs/core";
 import { JunctionType, Tile, TileType, WallTile } from "../types/tileTypes";
 import { SparseGrid } from "./sparseGrid";
 import { isEqual } from "lodash"
@@ -27,6 +28,9 @@ export class TileMap extends SparseGrid<Tile> {
         switch (tileType) {
             case TileType.Wall:
                 this.set(x, y, {type: TileType.Wall, direction: 0, junction: JunctionType.Base, tiedToFloor: false});
+                this.getEnclosedArea(this.getEnclosedWalls(x, y)).forEach(v =>{
+                    this.placeTile(v.x, v.y, TileType.Floor);
+                })
                 break;
             case TileType.Floor:
                 this.set(x, y, {type: TileType.Floor});
@@ -62,6 +66,106 @@ export class TileMap extends SparseGrid<Tile> {
         if((this.get(i, j) as WallTile).tiedToFloor && !tiedToFloor) {
             this.set(i, j, { type: TileType.Empty });
         }
+    }
+
+    private floodFill(start: Vector2, polygon: Vector2[], callback: (point: Vector2) => void){
+        const grid = new SparseGrid(false);
+        for(const vert of polygon){
+            grid.set(vert.x, vert.y, true);
+        }
+        const stack = [start];
+        while(stack.length > 0){
+            const current = stack.pop()!;
+            callback(current);
+            for(const n of grid.getNeighbors(current.x, current.y)){
+                if(n.value == false){
+                    const point = new Vector2(n.x, n.y);
+                    stack.push(point);
+                    grid.set(n.x, n.y, true);
+                }
+            }
+        }
+    }
+
+    private getEnclosedArea(walls: Vector2[]): Vector2[]{
+        const area: Vector2[] = [];
+        const visited: Set<string> = new Set();
+        for(const wall of walls){
+            for(const neigh of this.getNeighbors(wall.x, wall.y)){
+                if(this.get(neigh.x, neigh.y).type == TileType.Empty){
+                    if(!visited.has(`${neigh.x},${neigh.y}`) && this.isPointInPolygon(new Vector2(neigh.x, neigh.y), walls)){
+                        this.floodFill(new Vector2(neigh.x, neigh.y), walls, (point)=>{
+                            const pointKey = `${point.x},${point.y}`;
+                            if(!visited.has(pointKey)){
+                                area.push(point);
+                                visited.add(pointKey);
+                            }
+                        })
+                        return area;
+                        
+                    }
+                }
+            }
+        }
+        return area;
+    }
+
+    private isPointInPolygon(point: Vector2, polygon: Vector2[]): boolean {
+        const { x, y } = point;
+        let inside = false;
+        const n = polygon.length;
+    
+        for (let i = 0, j = n - 1; i < n; j = i++) {
+            const { x: xi, y: yi } = polygon[i];
+            const { x: xj, y: yj } = polygon[j];
+    
+            // Check if point is exactly on an edge (optional).
+            const onEdge = yi === yj && yi === y && x >= Math.min(xi, xj) && x <= Math.max(xi, xj);
+            if (onEdge) return false; // Or `true` if boundary counts as inside.
+    
+            // Ray intersection check.
+            const intersect = ((yi > y) !== (yj > y)) &&
+                (x < ((xj - xi) * (y - yi)) / (yj - yi) + xi);
+            if (intersect) inside = !inside;
+        }
+        return inside;
+    }
+
+    private getEnclosedWalls(_x: number, _y: number): Vector2[] {
+
+        type Node = {x: number, y: number, parent: Node | null};
+        
+        const walls: Vector2[] = [];
+
+        const stack: Node[] = [];
+        const visited = new Set<string>();
+        
+        stack.push({x: _x, y: _y, parent: null});
+        
+        while (stack.length > 0) {
+            const {x, y, parent } = stack.pop()!;
+            const key = `${x},${y}`;
+            const parentKey = parent ? `${parent.x},${parent.y}` : "";
+            visited.add(key);
+            
+            walls.push(new Vector2(x, y));
+
+            for (const neighbor of this.getNeighbors(x, y)) {
+                const neighborKey = `${neighbor.x},${neighbor.y}`;
+
+                if (neighbor.value.type == TileType.Wall) {
+
+                    if(visited.has(neighborKey) && neighborKey != parentKey) {
+                        return walls;
+                    }
+
+                    if (!visited.has(neighborKey)) {
+                        stack.push({x: neighbor.x, y: neighbor.y, parent: {x, y, parent}});
+                    }
+                }
+            }
+        }
+        return [];
     }
 
     //adds surrounding walls if the tile is a floor

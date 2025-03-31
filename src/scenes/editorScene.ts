@@ -151,7 +151,7 @@ export class EditorScene {
             if (this.paintMode) {
                 const tileType = usePaintToolStore.getState().tile;
                 if(this.lastPaintedTile?.x != x || this.lastPaintedTile?.y != z){                    
-                    this.tileMap.placeTile(x, z, tileType);
+                    this.tileMap.placeTile(x, z, tileType, true);
                     this.lastPaintedTile = {x, y: z};
 
                     this.tileMap.pollTileChanges().forEach(({x, y, value}) => {

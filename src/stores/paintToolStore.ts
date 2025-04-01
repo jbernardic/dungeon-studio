@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import {TileType } from "../types/tileTypes";
-import { PaintTool } from "../types/toolTypes";
+import { PaintToolState, PaintToolMode } from "../types/toolTypes";
 
-export const usePaintToolStore = create<Readonly<PaintTool>>(() => ({
-  tile: TileType.Floor,
-  tileTypes: Object.values(TileType)
+export const usePaintToolStore = create<Readonly<PaintToolState>>(() => ({
+  tileType: TileType.Floor,
+  mode: PaintToolMode.Brush
 }));

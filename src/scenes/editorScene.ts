@@ -2,9 +2,9 @@ import { Scene, MeshBuilder, Color4, Vector3, Color3, FreeCamera, HemisphericLig
 import "@babylonjs/loaders/glTF";
 import { MeshUtils } from '../utils/meshUtils';
 import { JunctionType, Tile, TileType, WallTile } from '../types/tileTypes';
-import { usePaintToolStore } from '../stores/paintToolStore';
 import { TileMap } from '../utils/tileMap';
 import { GridMaterial, SimpleMaterial, SkyMaterial } from '@babylonjs/materials';
+import { PaintTool } from './editorTools';
 
 class DebugTileColors{
     static readonly Empty = new Color3(0.5, 0.5, 0.5);
@@ -149,9 +149,8 @@ export class EditorScene {
             this.placeMesh.position.y = y;
 
             if (this.paintMode) {
-                const tileType = usePaintToolStore.getState().tile;
                 if(this.lastPaintedTile?.x != x || this.lastPaintedTile?.y != z){                    
-                    this.tileMap.placeTile(x, z, tileType);
+                    new PaintTool().paint(x, z, this.tileMap);
                     this.lastPaintedTile = {x, y: z};
 
                     this.tileMap.pollChanges().forEach(({x, y, value}) => {

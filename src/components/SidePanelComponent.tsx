@@ -1,10 +1,10 @@
 import { usePaintToolStore } from "../stores/paintToolStore"
+import { TileType } from "../types/tileTypes";
+import { PaintToolMode } from "../types/toolTypes";
 
 const SidePanelComponent = ({
     ...rest
 }) => {
-
-    const paintToolStore = usePaintToolStore();
 
     return <div {...rest}>
         <div className="p-5">
@@ -12,21 +12,31 @@ const SidePanelComponent = ({
             <form>
                 <div>
                     <h1 className="text-lg">Paint Tool</h1>
-                    {paintToolStore.tileTypes.map((tileType) => (
-                        <div key={tileType}>
-                            <label>
-                                <span>{tileType} </span>
-                                <input
-                                    onChange={() => usePaintToolStore.setState({tile: tileType})}
-                                    checked={paintToolStore.tile === tileType}
-                                    type="radio"
-                                    value={tileType}
-                                    name="tileSelection"
-                                />
-                            </label>
+                    <hr></hr>
+                    <label>
+                        <div>
+                            <span>tile: </span>
+                            <select onChange={(event)=>usePaintToolStore.setState({tileType: event.target.value as TileType})}>
+                                {Object.values(TileType).map(tileType=>
+                                    <>
+                                        <option value={tileType}>{tileType}</option>
+                                    </>
+                                )}
+                            </select>
                         </div>
-                    ))}
-                    <div>Selected tile: {paintToolStore.tile}</div>
+                        <div>
+                            <span>mode: </span>
+                            <select onChange={(event)=>usePaintToolStore.setState({mode: event.target.value as PaintToolMode})}>
+                                {Object.values(PaintToolMode).map(tileType=>
+                                    <>
+                                        <option value={tileType}>{tileType}</option>
+                                    </>
+                                )}
+                            </select>
+                        </div>
+
+                    </label>
+
                 </div>
 
             </form>

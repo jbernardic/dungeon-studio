@@ -2,10 +2,10 @@ import { TileType } from "./tileTypes";
 
 export enum PaintToolMode{
     Brush = "brush",
-    Eraser = "eraser"
+    Bucket = "bucket"
 }
 
-export interface PaintTool {
-  tile: TileType;
-  tileTypes: TileType[];
+export interface PaintToolState {
+  tileType: TileType;
+  mode: PaintToolMode;
 }

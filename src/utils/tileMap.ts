@@ -24,7 +24,6 @@ export class TileMap extends SparseGrid<Tile> {
     placeTile(x: number, y: number, tileType: TileType, updateFloor: boolean = false): void {
 
         const oldTiles = this.getSquare(x, y, 2); //5x5 area
-
         switch (tileType) {
             case TileType.Wall:
                 this.set(x, y, {type: TileType.Wall, direction: 0, junction: JunctionType.Base, tiedToFloor: false});
@@ -42,18 +41,28 @@ export class TileMap extends SparseGrid<Tile> {
                 break;
             case TileType.Empty:
                 const type = this.get(x, y).type;
-                if(type == TileType.Wall){ 
-                    //TODO - fix later
-                    //flood empty floor tiles
-                    // const walls = this.getEnclosedWalls(x, y);
-                    // this.getEnclosedArea(walls).forEach(v =>{
-                    //     this.placeTile(v.x, v.y, TileType.Empty); //fix later
-                    // })
+                if(type == TileType.Wall){ //flood empty floor tiles
+
+                    const floorNeighbor = this.getNeighbors(x, y).find(x=>x.value.type == TileType.Floor);
+                    const emptyNeigbor = this.getNeighbors(x, y).find(x=>x.value.type == TileType.Empty);
+
+                    if(floorNeighbor && emptyNeigbor){
+                        const walls = this.getEnclosedWalls(x, y, true);
+                        this.floodFill(new Vector2(floorNeighbor.x, floorNeighbor.y), walls, (p)=>{
+                            this.placeTile(p.x, p.y, TileType.Empty);
+                        })
+                    }
+
+                    if(!emptyNeigbor) this.set(x, y, {type: TileType.Floor});
+                    else this.set(x, y, {type: TileType.Empty});
                 }
-                this.set(x, y, {type: TileType.Empty});
-                if (type == TileType.Floor && updateFloor){
+                else if (type == TileType.Floor && updateFloor){
+                    this.set(x, y, {type: TileType.Empty});
                     this.getSquare(x, y, 1).forEach((tile) => this.removeUntiedWall(tile.x, tile.y));
                     this.getSquare(x, y, 1).forEach((tile) => this.updateFloor(tile.x, tile.y));
+                }
+                else {
+                    this.set(x, y, {type: TileType.Empty});
                 }
                 break;
         }
@@ -127,7 +136,7 @@ export class TileMap extends SparseGrid<Tile> {
         return area;
     }
 
-    private getEnclosedWalls(_x: number, _y: number): Vector2[] {
+    private getEnclosedWalls(_x: number, _y: number, includeAll = false): Vector2[] {
 
         type Node = {x: number, y: number, parent: Node | null};
 
@@ -137,13 +146,16 @@ export class TileMap extends SparseGrid<Tile> {
         stack.push({x: _x, y: _y, parent: null});
 
         let result: Vector2[] = [];
-        
+        let isClosed = false;
+
         while (stack.length > 0) {
             const {x, y, parent } = stack.pop()!;
 
             const key = `${x},${y}`;
             const parentKey = parent ? `${parent.x},${parent.y}` : "";
             visited.add(key);
+
+            if(includeAll) result.push(new Vector2(x, y));
 
             for (const neighbor of this.getNeighbors(x, y)) {
                 const neighborKey = `${neighbor.x},${neighbor.y}`;
@@ -159,9 +171,10 @@ export class TileMap extends SparseGrid<Tile> {
                             head = head.parent;
                         }
                         while(head != null);
-                        if(walls.length > result.length){
+                        if(!includeAll && walls.length > result.length){
                             result = walls;
                         }
+                        isClosed = true;
                     }
 
                     if (!visited.has(neighborKey)) {
@@ -170,7 +183,7 @@ export class TileMap extends SparseGrid<Tile> {
                 }
             }
         }
-        return result;
+        return isClosed ? result : [];
     }
 
     //removes walls that are not tied to a floor but were previously

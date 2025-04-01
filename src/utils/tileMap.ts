@@ -42,11 +42,13 @@ export class TileMap extends SparseGrid<Tile> {
                 break;
             case TileType.Empty:
                 const type = this.get(x, y).type;
-                if(type == TileType.Wall){ //flood empty floor tiles
-                    const walls = this.getEnclosedWalls(x, y);
-                    this.getEnclosedArea(walls).forEach(v =>{
-                        this.placeTile(v.x, v.y, TileType.Empty);
-                    })
+                if(type == TileType.Wall){ 
+                    //TODO - fix later
+                    //flood empty floor tiles
+                    // const walls = this.getEnclosedWalls(x, y);
+                    // this.getEnclosedArea(walls).forEach(v =>{
+                    //     this.placeTile(v.x, v.y, TileType.Empty); //fix later
+                    // })
                 }
                 this.set(x, y, {type: TileType.Empty});
                 if (type == TileType.Floor && updateFloor){
@@ -56,7 +58,7 @@ export class TileMap extends SparseGrid<Tile> {
                 break;
         }
 
-        this.getSquare(x, y, 1).forEach((tile) => this.updateWall(tile.x, tile.y)); //5x5 area
+        this.getSquare(x, y, 2).forEach((tile) => this.updateWall(tile.x, tile.y)); //5x5 area
 
         for(const tile of oldTiles) {
             if(!isEqual(tile.value, this.get(tile.x, tile.y))) {
@@ -133,6 +135,8 @@ export class TileMap extends SparseGrid<Tile> {
         const visited = new Set<string>();
         
         stack.push({x: _x, y: _y, parent: null});
+
+        let result: Vector2[] = [];
         
         while (stack.length > 0) {
             const {x, y, parent } = stack.pop()!;
@@ -155,7 +159,9 @@ export class TileMap extends SparseGrid<Tile> {
                             head = head.parent;
                         }
                         while(head != null);
-                        return walls;
+                        if(walls.length > result.length){
+                            result = walls;
+                        }
                     }
 
                     if (!visited.has(neighborKey)) {
@@ -164,7 +170,7 @@ export class TileMap extends SparseGrid<Tile> {
                 }
             }
         }
-        return [];
+        return result;
     }
 
     //removes walls that are not tied to a floor but were previously

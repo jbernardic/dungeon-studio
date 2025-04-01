@@ -1,5 +1,6 @@
 export class SparseGrid<T = number> {
     private grid: { [x: number]: { [y: number]: T } } = {};
+
     private defaultValue: T;
 
     constructor(defaultValue: T){
@@ -10,10 +11,10 @@ export class SparseGrid<T = number> {
       if (!(x in this.grid)) this.grid[x] = {};
       if (!(y in this.grid[x])) this.grid[x][y] = this.defaultValue;
     }
-    
+
     //resets tile to default value
     reset(x: number, y: number) {
-      this.grid[x][y] = this.defaultValue;
+      this.set(x, y, this.defaultValue);
     }
 
     get(x: number, y: number): T {

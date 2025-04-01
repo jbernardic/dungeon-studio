@@ -151,10 +151,10 @@ export class EditorScene {
             if (this.paintMode) {
                 const tileType = usePaintToolStore.getState().tile;
                 if(this.lastPaintedTile?.x != x || this.lastPaintedTile?.y != z){                    
-                    this.tileMap.placeTile(x, z, tileType, true);
+                    this.tileMap.placeTile(x, z, tileType);
                     this.lastPaintedTile = {x, y: z};
 
-                    this.tileMap.pollTileChanges().forEach(({x, y, value}) => {
+                    this.tileMap.pollChanges().forEach(({x, y, value}) => {
                         this.handleTileChange(x, y, value);
                     });
                 }
@@ -166,13 +166,7 @@ export class EditorScene {
         this.scene.getMeshByName(`Wall (${x},${y})`)?.dispose();
         if (tile.type == TileType.Wall) {
             this.placeWallMesh(x, this.groundMesh.position.y, y, (tile as WallTile).junction, (tile as WallTile).direction);
-            if(tile.tiedToFloor){
-                this.setGroundColor(x, y, Color3.Red());
-            }
-            else {
-                this.setGroundColor(x, y, DebugTileColors.Wall);
-            }
-            
+            this.setGroundColor(x, y, DebugTileColors.Wall);
         }
         else if (tile.type == TileType.Empty) {
             this.setGroundColor(x, y, DebugTileColors.Empty);

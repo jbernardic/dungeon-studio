@@ -14,7 +14,7 @@ export enum JunctionType {
 }
 
 export interface EmptyTile{
-    type: TileType.Empty
+    type: TileType.Empty;
 }
 
 export interface FloorTile {
@@ -23,7 +23,6 @@ export interface FloorTile {
 
 export interface WallTile {
     type: TileType.Wall;
-    tiedToFloor: boolean;
     direction: number;
     junction: JunctionType;
 }

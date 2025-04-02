@@ -18,15 +18,11 @@ export class SparseGrid<T = number> {
     }
 
     get(x: number, y: number): T {
-      x = Math.floor(x);
-      y = Math.floor(y);
       this.initCell(x, y);
       return this.grid[x][y];
     }
   
     set(x: number, y: number, value: T): void {
-      x = Math.floor(x);
-      y = Math.floor(y);
       this.initCell(x, y);
       this.grid[x][y] = value;
     }

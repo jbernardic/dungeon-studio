@@ -24,48 +24,57 @@ export class TileMap extends SparseGrid<Tile> {
     // If the tile is empty, it will remove surrounding walls if the replaced tile is a floor.
     // It will also update the wall direction and junction info for surrounding walls.
     placeTile(x: number, y: number, tileType: TileType): void {
-        
-        const oldTiles = this.getSquare(x, y, 1); //3x3 area
+
+        const tile = this.get(x, y);
 
         switch (tileType) {
             case TileType.Wall:
                 this.set(x, y, {type: TileType.Wall, direction: 0, junction: JunctionType.Base});
+                this.getSquare(x, y, 1).forEach((tile) => {
+                    this.updateWall(tile.x, tile.y)
+                    this.tileChange(tile.x, tile.y, tile.value);
+                }); //3x3 area
                 break;
             case TileType.Floor:
                 this.set(x, y, {type: TileType.Floor});
                 break;
             case TileType.Empty:
                 this.set(x, y, {type: TileType.Empty});
+                this.getSquare(x, y, 1).forEach((tile) => {
+                    this.updateWall(tile.x, tile.y)
+                    this.tileChange(tile.x, tile.y, tile.value);
+                }); //3x3 area
                 break;
         }
 
-        this.getSquare(x, y, 1).forEach((tile) => this.updateWall(tile.x, tile.y)); //3x3 area
-        oldTiles.filter((tile)=>!isEqual(tile.value, this.get(tile.x, tile.y)))
-        .forEach(tile=>this.tileChanges.set(tile.x, tile.y, this.get(tile.x, tile.y)));
+        this.tileChange(x, y, tile);
     }
 
-    floodFill(start: Vector2, maxSize: number, boundType: TileType, callback: (point: Vector2) => void){
-        const grid = new SparseGrid(false);
-        
-        for(let i = start.x-maxSize; i<=start.x+maxSize; ++i){
-            for(let j = start.y-maxSize; j<=start.y+maxSize; ++j){
-                if(this.get(i, j).type == boundType){
-                    grid.set(i, j, true);
+    floodFill(start: Vector2, maxDepth: number, tileType: TileType, callback: (point: Vector2) => void){
+        const visited = new SparseGrid(false);
+
+        const stack = [start];
+        while(stack.length > 0 && maxDepth > 0){
+            const p = stack.pop()!;
+            maxDepth--;
+
+            callback(p);
+
+            const neighbors = [{x: p.x+1, y: p.y}, {x: p.x-1, y: p.y}, {x: p.x, y: p.y+1}, {x: p.x, y: p.y-1}];
+
+            for(const n of neighbors){
+                if(this.get(n.x, n.y).type == tileType && !visited.get(n.x, n.y)){
+                    visited.set(n.x, n.y, true);
+                    stack.push(new Vector2(n.x, n.y));
                 }
             }
         }
+    }
 
-        const stack = [start];
-        while(stack.length > 0){
-            const current = stack.pop()!;
-            callback(current);
-            for(const n of grid.getNeighbors(current.x, current.y)){
-                if(n.value == false){
-                    const point = new Vector2(n.x, n.y);
-                    stack.push(point);
-                    grid.set(n.x, n.y, true);
-                }
-            }
+    private tileChange(x: number, y: number, oldTile: Tile){
+        const newTile: Tile = this.get(x, y);
+        if(!isEqual(oldTile, newTile)){
+            this.tileChanges.set(x, y, newTile);
         }
     }
 

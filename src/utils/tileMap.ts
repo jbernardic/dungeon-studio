@@ -1,7 +1,7 @@
 import { Vector2 } from "@babylonjs/core";
 import { JunctionType, Tile, TileType } from "../types/tileTypes";
 import { SparseGrid } from "./sparseGrid";
-import { isEqual } from "lodash";
+import { isEqual, xor } from "lodash";
 
 export class TileMap extends SparseGrid<Tile> {
 
@@ -39,11 +39,13 @@ export class TileMap extends SparseGrid<Tile> {
                 this.set(x, y, {type: TileType.Floor});
                 break;
             case TileType.Empty:
-                this.set(x, y, {type: TileType.Empty});
-                this.getSquare(x, y, 1).forEach((tile) => {
-                    this.updateWall(tile.x, tile.y)
-                    this.tileChange(tile.x, tile.y, tile.value);
-                }); //3x3 area
+                if(this.get(x, y).type != TileType.Empty){
+                    this.set(x, y, {type: TileType.Empty});
+                    this.getSquare(x, y, 1).forEach((tile) => {
+                        this.updateWall(tile.x, tile.y)
+                        this.tileChange(tile.x, tile.y, tile.value);
+                    }); //3x3 area
+                }
                 break;
         }
 
@@ -62,13 +64,39 @@ export class TileMap extends SparseGrid<Tile> {
 
             const neighbors = [{x: p.x+1, y: p.y}, {x: p.x-1, y: p.y}, {x: p.x, y: p.y+1}, {x: p.x, y: p.y-1}];
 
-            for(const n of neighbors){
+            for(const n of neighbors){ 
+                if(this.getEdge(p.x, p.y, n.x, n.y) != TileType.Empty){
+                    continue;
+                }
                 if(this.get(n.x, n.y).type == tileType && !visited.get(n.x, n.y)){
                     visited.set(n.x, n.y, true);
                     stack.push(new Vector2(n.x, n.y));
                 }
             }
         }
+    }
+
+    //gets edge between tiles (x1, y1) and (x2, y2)
+    private getEdge(x1: number, y1: number, x2: number, y2: number): TileType {
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+
+        if(Math.abs(dx)+Math.abs(dy) > 1){
+            throw new Error("Tiles should be neighbors.");
+        }
+
+        // Midpoint between the two tiles (for edge calculation)
+        const midX = x1 + dx * 0.5;
+        const midY = y1 + dy * 0.5;
+
+        // Check the two corners of the edge
+        const corner1 = this.get(midX + dy * 0.5, midY - dx * 0.5); // Perpendicular offset 1
+        const corner2 = this.get(midX - dy * 0.5, midY + dx * 0.5); // Perpendicular offset 2
+
+        if (corner1.type == corner2.type) {
+            return corner1.type;
+        }
+        return TileType.Empty;
     }
 
     private tileChange(x: number, y: number, oldTile: Tile){

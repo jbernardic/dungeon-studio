@@ -22,6 +22,7 @@ export class EditorScene {
     private paintMode: boolean = false;
     private lastPaintedTile: {x: number, y: number} | null = null;
     private tileMap: TileMap = new TileMap();
+    private paintTool: PaintTool = new PaintTool();
 
     constructor(scene: Scene) {
         this.scene = scene;
@@ -99,7 +100,6 @@ export class EditorScene {
         const gridMaterial = new GridMaterial("grid", scene);
         gridMaterial.gridRatio = 1;
         gridMaterial.majorUnitFrequency = 3;
-        // gridMaterial.gridOffset = new Vector3(groundSize, groundSize, groundSize);
         gridMaterial.opacity = 0.99;
         gridMaterial.alpha = 1;
         gridMaterial.lineColor = new Color3(0, 0, 0);
@@ -138,19 +138,31 @@ export class EditorScene {
             (mesh) => mesh.name == "ground"
         );
         if (pickInfo.hit) {
-            let x = Math.floor(pickInfo.pickedPoint!.x);
-            let z = Math.floor(pickInfo.pickedPoint!.z);
+            let x, z;
+            if(this.paintTool.getState().tileType == TileType.Wall){
+                x = Math.round(pickInfo.pickedPoint!.x)-0.5;
+                z = Math.round(pickInfo.pickedPoint!.z)-0.5;    
+            }
+            else if(this.paintTool.getState().tileType == TileType.Empty){
+                x = Math.round(pickInfo.pickedPoint!.x*2)/2-0.5;
+                z = Math.round(pickInfo.pickedPoint!.z*2)/2-0.5;   
+            }
+            else{
+                x = Math.floor(pickInfo.pickedPoint!.x);
+                z = Math.floor(pickInfo.pickedPoint!.z);
+            }
+
             let y = pickInfo.pickedPoint!.y;
 
             this.placeMesh.setEnabled(true);
 
-            this.placeMesh.position.x = x + 0.5;
-            this.placeMesh.position.z = z + 0.5;
+            this.placeMesh.position.x = x+0.5;
+            this.placeMesh.position.z = z+0.5;
             this.placeMesh.position.y = y;
 
             if (this.paintMode) {
                 if(this.lastPaintedTile?.x != x || this.lastPaintedTile?.y != z){                    
-                    new PaintTool().paint(x, z, this.tileMap);
+                    this.paintTool.paint(x, z, this.tileMap);
                     this.lastPaintedTile = {x, y: z};
 
                     this.tileMap.pollChanges().forEach(({x, y, value}) => {
@@ -165,7 +177,7 @@ export class EditorScene {
         this.scene.getMeshByName(`Wall (${x},${y})`)?.dispose();
         if (tile.type == TileType.Wall) {
             this.placeWallMesh(x, this.groundMesh.position.y, y, (tile as WallTile).junction, (tile as WallTile).direction);
-            this.setGroundColor(x, y, DebugTileColors.Wall);
+            //this.setGroundColor(x, y, DebugTileColors.Wall);
         }
         else if (tile.type == TileType.Empty) {
             this.setGroundColor(x, y, DebugTileColors.Empty);

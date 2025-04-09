@@ -1,7 +1,7 @@
 import { Vector2 } from "@babylonjs/core";
 import { JunctionType, Tile, TileType } from "../types/tileTypes";
 import { SparseGrid } from "./sparseGrid";
-import { isEqual, xor } from "lodash";
+import { isEqual } from "lodash";
 
 export class TileMap extends SparseGrid<Tile> {
 

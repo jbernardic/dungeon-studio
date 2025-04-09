@@ -1,4 +1,4 @@
-import { Scene, MeshBuilder, Color4, Vector3, Color3, FreeCamera, HemisphericLight, AbstractMesh, PointerEventTypes, DynamicTexture, Texture, DirectionalLight } from '@babylonjs/core';
+import { Scene, MeshBuilder, Color4, Vector3, Color3, FreeCamera, HemisphericLight, AbstractMesh, PointerEventTypes, DynamicTexture, Texture, DirectionalLight, ShadowGenerator } from '@babylonjs/core';
 import "@babylonjs/loaders/glTF";
 import { MeshUtils } from '../utils/meshUtils';
 import { JunctionType, Tile, TileType, WallTile } from '../types/tileTypes';
@@ -7,7 +7,7 @@ import { GridMaterial, SimpleMaterial, SkyMaterial } from '@babylonjs/materials'
 import { PaintTool } from './editorTools';
 
 class DebugTileColors{
-    static readonly Empty = new Color3(0.5, 0.5, 0.5);
+    static readonly Empty = new Color3(0.3, 0.45, 0.3);
     static readonly Floor = new Color3(1, 1, 0);
     static readonly Wall = new Color3(0, 0, 1);
 }
@@ -23,6 +23,7 @@ export class EditorScene {
     private lastPaintedTile: {x: number, y: number} | null = null;
     private tileMap: TileMap = new TileMap();
     private paintTool: PaintTool = new PaintTool();
+    private shadowGenerator: ShadowGenerator;
 
     constructor(scene: Scene) {
         this.scene = scene;
@@ -62,15 +63,24 @@ export class EditorScene {
 
         // Hemispheric Light (ambient light)
         const light1 = new HemisphericLight("light1", new Vector3(0, 1, 0), scene);
-        light1.intensity = 1;
+        light1.intensity = 0.7;
+        light1.diffuse = new Color3(0.8, 0.9, 1);  // Cool sky blue
+        light1.groundColor = new Color3(0.3, 0.2, 0.1);  // Earthy brown (bounced light)
+
 
         // Directional Light (like sunlight)
-        const light2 = new DirectionalLight("light2", new Vector3(-1, -1, -1), scene);
+        const light2 = new DirectionalLight("light2", new Vector3(-1, -2, -1), scene);
         light2.position = new Vector3(5, 10, 5);
-        light2.intensity = 0.8;
+        light2.intensity = 1;
+        light2.diffuse = new Color3(1, 0.95, 0.85);  // Warm white with yellow tint
+        light2.specular = new Color3(1, 0.9, 0.7);  // Brighter highlights
 
         const groundSize = 1000;
-
+        
+        //Shadow
+        this.shadowGenerator = new ShadowGenerator(groundSize, light2);
+        this.shadowGenerator.useBlurExponentialShadowMap = true;
+        
         //Skybox
         const skyMaterial = new SkyMaterial("skyMaterial", scene);
         skyMaterial.backFaceCulling = false;
@@ -87,6 +97,7 @@ export class EditorScene {
         this.groundMesh = MeshBuilder.CreateGround("ground", { width: groundSize, height: groundSize }, scene);
         this.groundMesh.material = new SimpleMaterial("groundMaterial", scene);
         (this.groundMesh.material as SimpleMaterial).diffuseTexture = this.groundTexture;
+        this.groundMesh.receiveShadows = true;
 
         this.groundTexture.updateSamplingMode(1);
         const ctx = this.groundTexture.getContext();
@@ -207,6 +218,7 @@ export class EditorScene {
         newWall!.rotate(new Vector3(0, 1, 0), direction * 0.5 * Math.PI);
         newWall?.setEnabled(true);
         newWall?.scaling.multiplyInPlace(new Vector3(wallScale, wallScale, wallScale));
+        this.shadowGenerator.addShadowCaster(newWall!);
         return newWall;
     }
 }

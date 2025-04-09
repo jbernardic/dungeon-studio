@@ -64,8 +64,8 @@ export class EditorScene {
         // Hemispheric Light (ambient light)
         const light1 = new HemisphericLight("light1", new Vector3(0, 1, 0), scene);
         light1.intensity = 0.7;
-        light1.diffuse = new Color3(0.8, 0.9, 1);  // Cool sky blue
-        light1.groundColor = new Color3(0.3, 0.2, 0.1);  // Earthy brown (bounced light)
+        light1.groundColor = new Color3(0.2, 0.4, 0.2); // Brighter green bounce
+        light1.diffuse = new Color3(0.4, 0.6, 0.8); 
 
 
         // Directional Light (like sunlight)
@@ -95,9 +95,12 @@ export class EditorScene {
         this.groundTexture.wrapV = Texture.CLAMP_ADDRESSMODE;
 
         this.groundMesh = MeshBuilder.CreateGround("ground", { width: groundSize, height: groundSize }, scene);
-        this.groundMesh.material = new SimpleMaterial("groundMaterial", scene);
-        (this.groundMesh.material as SimpleMaterial).diffuseTexture = this.groundTexture;
+        const groundMaterial = new SimpleMaterial("groundMaterial", scene);
+        groundMaterial.diffuseTexture = this.groundTexture;
+
+        this.groundMesh.material = groundMaterial;
         this.groundMesh.receiveShadows = true;
+
 
         this.groundTexture.updateSamplingMode(1);
         const ctx = this.groundTexture.getContext();

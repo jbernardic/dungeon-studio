@@ -62,4 +62,14 @@ export class SparseGrid<T = number> {
   clear(): void {
       this.grid.clear();
   }
+
+  clone(): SparseGrid<T>{
+    const grid = new SparseGrid<T>(this.defaultValue);
+    for (const [x, row] of this.grid.entries()) {
+        for (const [y, value] of row.entries()) {
+            grid.set(x, y, value);
+        }
+    }
+    return grid;
+  }
 }

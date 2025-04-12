@@ -3,6 +3,7 @@ import { Scene } from "@babylonjs/core";
 import SceneComponent from './components/SceneComponent'
 import SidePanelComponent from './components/SidePanelComponent';
 import { EditorScene } from './scenes/editorScene';
+import { useEditorStore } from './stores/editorStore';
 
 import {
   Menubar,
@@ -14,7 +15,6 @@ import {
   MenubarShortcut,
   MenubarTrigger,
 } from "@/components/ui/menubar"
-
 
 import {
   DropdownMenu,
@@ -68,10 +68,10 @@ function App() {
             <MenubarMenu>
               <MenubarTrigger>Edit</MenubarTrigger>
               <MenubarContent>
-                <MenubarItem>
+                <MenubarItem onClick={()=>useEditorStore.getState().sendCommand("UNDO")}>
                   Undo <MenubarShortcut>CTRL+Z</MenubarShortcut>
                 </MenubarItem>
-                <MenubarItem>
+                <MenubarItem onClick={()=>useEditorStore.getState().sendCommand("REDO")}>
                   Redo <MenubarShortcut>CTRL+Y</MenubarShortcut>
                 </MenubarItem>
               </MenubarContent>

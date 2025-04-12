@@ -6,6 +6,8 @@ import { isEqual } from "lodash";
 export class TileMap extends SparseGrid<Tile> {
 
     private tileChanges: SparseGrid<Tile> = new SparseGrid<Tile>({type: TileType.Empty});
+    private tileHistory: SparseGrid<Tile>[] = [];
+    private tileFuture: SparseGrid<Tile>[] = [];
 
     constructor() {
         super({ type: TileType.Empty });
@@ -25,6 +27,7 @@ export class TileMap extends SparseGrid<Tile> {
     // It will also update the wall direction and junction info for surrounding walls.
     placeTile(x: number, y: number, tileType: TileType): void {
 
+        this.tileHistory.push(this.clone());
         const tile = this.get(x, y);
 
         switch (tileType) {
@@ -48,8 +51,33 @@ export class TileMap extends SparseGrid<Tile> {
                 }
                 break;
         }
-
         this.tileChange(x, y, tile);
+    }
+
+    undo(){
+        const historyTiles = this.tileHistory.pop();
+        if(historyTiles){
+            this.tileFuture.push(this.clone());
+            for(const tile of this.getAll()){
+                const historyTile = historyTiles.get(tile.x, tile.y);
+                if(tile.value.type != historyTile.type){
+                    this.placeTile(tile.x, tile.y, historyTile.type);
+                    this.tileHistory.pop();
+                }
+            }
+        }
+    }
+
+    redo(){
+        const futureTiles = this.tileFuture.pop();
+        if(futureTiles){
+            for(const tile of this.getAll()){
+                const futureTile = futureTiles.get(tile.x, tile.y);
+                if(tile.value.type != futureTile.type){
+                    this.placeTile(tile.x, tile.y, futureTile.type);
+                }
+            }
+        }
     }
 
     floodFill(start: Vector2, maxDepth: number, tileType: TileType, callback: (point: Vector2) => void){

@@ -1,10 +1,11 @@
-import { Scene, MeshBuilder, Color4, Vector3, Color3, FreeCamera, HemisphericLight, AbstractMesh, PointerEventTypes, DynamicTexture, Texture, DirectionalLight, ShadowGenerator } from '@babylonjs/core';
+import { Scene, MeshBuilder, Color4, Vector3, Color3, FreeCamera, HemisphericLight, AbstractMesh, PointerEventTypes, DynamicTexture, Texture, DirectionalLight, ShadowGenerator, KeyboardEventTypes } from '@babylonjs/core';
 import "@babylonjs/loaders/glTF";
 import { MeshUtils } from '../utils/meshUtils';
 import { JunctionType, Tile, TileType, WallTile } from '../types/tileTypes';
 import { TileMap } from '../utils/tileMap';
 import { GridMaterial, SimpleMaterial, SkyMaterial } from '@babylonjs/materials';
 import { PaintTool } from './editorTools';
+import { useEditorStore } from '@/stores/editorStore';
 
 class DebugTileColors{
     static readonly Empty = new Color3(0.3, 0.45, 0.3);
@@ -39,13 +40,33 @@ export class EditorScene {
                     this.lastPaintedTile = null;
                 }
             }
-            // if (kbInfo.type == PointerEventTypes.POINTERWHEEL) //scroll
-            // {
-            //     const event = kbInfo.event as IWheelEvent;
-            //     const sign = Math.sign(event.deltaY);
-            //     this.wall?.rotate(new Vector3(0, 0, 1), sign*0.5*Math.PI)
-            // }
         });
+
+        scene.onKeyboardObservable.add((info)=>{
+            if( info.type == KeyboardEventTypes.KEYDOWN &&
+                info.event.ctrlKey && info.event.key == "z"){
+                this.undoTiles();
+            }
+            else if( info.type == KeyboardEventTypes.KEYDOWN &&
+                info.event.ctrlKey && info.event.key == "y"){
+                this.redoTiles();
+            }
+        });
+
+        scene.onBeforeRenderObservable.add(()=>{
+            const {command, clearCommand} = useEditorStore.getState();
+            if(command == "UNDO"){
+                this.undoTiles();
+                clearCommand();
+            }
+            else if(command == "REDO"){
+                this.redoTiles();
+                clearCommand();
+            }
+            else if(command == "EXPORT"){
+                //TODO
+            }
+        })
 
         this.camera = new FreeCamera("camera1", new Vector3(0, 5, -10), scene);
         this.camera.setTarget(Vector3.Zero());
@@ -120,7 +141,10 @@ export class EditorScene {
         gridMesh.material = gridMaterial
         gridMesh.position.y = 0.01;
 
-        this.placeMesh = MeshBuilder.CreateBox("placeMesh", { size: 0.5, faceColors: Array(6).fill(new Color4(0.5, 1, 0.5, 1)) }, scene);
+        this.placeMesh = MeshBuilder.CreateBox("placeMesh", { size: 0.25, faceColors: Array(6).fill(new Color4(1, 1, 1, 1)) }, scene);
+        this.placeMesh.material = new SimpleMaterial("placeMeshMaterial", this.scene);
+        (this.placeMesh.material as SimpleMaterial).alpha = 0.6;
+        (this.placeMesh.material as SimpleMaterial).disableLighting = true;
         this.placeMesh.setEnabled(false);
 
         MeshUtils.import("models/RockWall/Wall.glb", scene).then(mesh => {
@@ -182,6 +206,20 @@ export class EditorScene {
                 }
             }
         }
+    }
+
+    private undoTiles(){
+        this.tileMap.undo();
+        this.tileMap.pollChanges().forEach(({x, y, value}) => {
+            this.handleTileChange(x, y, value);
+        });
+    }
+
+    private redoTiles(){
+        this.tileMap.redo();
+        this.tileMap.pollChanges().forEach(({x, y, value}) => {
+            this.handleTileChange(x, y, value);
+        });
     }
 
     private handleTileChange(x: number, y: number, tile: Tile){

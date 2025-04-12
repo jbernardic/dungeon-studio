@@ -123,26 +123,23 @@ export class EditorScene {
         this.placeMesh = MeshBuilder.CreateBox("placeMesh", { size: 0.5, faceColors: Array(6).fill(new Color4(0.5, 1, 0.5, 1)) }, scene);
         this.placeMesh.setEnabled(false);
 
-        MeshUtils.import("models/Wall/Wall.glb", scene).then(mesh => {
+        MeshUtils.import("models/RockWall/Wall.glb", scene).then(mesh => {
             this.wallMeshes.set(JunctionType.Base, mesh!);
         });
-        MeshUtils.import("models/Wall/Wall_T1.glb", scene).then(mesh => {
+        MeshUtils.import("models/RockWall/Wall_T1.glb", scene).then(mesh => {
             this.wallMeshes.set(JunctionType.T1, mesh!);
         });
-        MeshUtils.import("models/Wall/Wall_T2.glb", scene).then(mesh => {
+        MeshUtils.import("models/RockWall/Wall_T2.glb", scene).then(mesh => {
             this.wallMeshes.set(JunctionType.T2, mesh!);
         });
-        MeshUtils.import("models/Wall/Wall_T3.glb", scene).then(mesh => {
+        MeshUtils.import("models/RockWall/Wall_T3.glb", scene).then(mesh => {
             this.wallMeshes.set(JunctionType.T3, mesh!);
         });
-        MeshUtils.import("models/Wall/Wall_T4.glb", scene).then(mesh => {
+        MeshUtils.import("models/RockWall/Wall_T4.glb", scene).then(mesh => {
             this.wallMeshes.set(JunctionType.T4, mesh!);
-
-            MeshUtils.import("models/Wall/Wall_T0.glb", scene).then(mesh => {
-                mesh!.scaling = this.wallMeshes.get(JunctionType.T4)!.scaling;
-                this.wallMeshes.set(JunctionType.T0, mesh!);
-            });
-            
+        });
+        MeshUtils.import("models/RockWall/Wall_T0.glb", scene).then(mesh => {
+            this.wallMeshes.set(JunctionType.T0, mesh!);
         });
     }
 
@@ -214,11 +211,11 @@ export class EditorScene {
     }
 
     private placeWallMesh(x: number, y: number, z: number, junction: JunctionType, direction: number) {
-        const wallScale = 1;
+        const wallScale = 0.5;
         const newWall = this.wallMeshes.get(junction)!.clone(`Wall (${x},${z})`, null);
         newWall!.position = new Vector3(x + 0.5, y, z + 0.5);
 
-        newWall!.rotate(new Vector3(0, 1, 0), direction * 0.5 * Math.PI);
+        newWall!.rotate(new Vector3(0, 1, 0), -(direction * 0.5 + 0.5) * Math.PI);
         newWall?.setEnabled(true);
         newWall?.scaling.multiplyInPlace(new Vector3(wallScale, wallScale, wallScale));
         this.shadowGenerator.addShadowCaster(newWall!);

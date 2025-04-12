@@ -135,11 +135,11 @@ export class TileMap extends SparseGrid<Tile> {
         }
         else if(!tN && !tW && tE && !tS){
             junction = JunctionType.T1;
-            direction = 1;
+            direction = 3;
         }
         else if (!tN && tW && !tE && !tS){
             junction = JunctionType.T1;
-            direction = 3;
+            direction = 1;
         }
         else if(tN && !tW && !tE && !tS){
             junction = JunctionType.T1;
@@ -148,7 +148,7 @@ export class TileMap extends SparseGrid<Tile> {
         //T2
         else if (tN && tW && !tE && !tS) {
             junction = JunctionType.T2;
-            direction = 3;
+            direction = 1;
         }
         else if (tN && tE && !tW && !tS) {
             junction = JunctionType.T2;
@@ -160,12 +160,12 @@ export class TileMap extends SparseGrid<Tile> {
         }
         else if (tS && tE && !tW && !tN) {
             junction = JunctionType.T2;
-            direction = 1;
+            direction = 3;
         }
         //T3
         else if (tN && tW && tE && !tS) {
             junction = JunctionType.T3;
-            direction = 3;
+            direction = 1;
         }
         else if (tN && tW && !tE && tS) {
             junction = JunctionType.T3;
@@ -177,7 +177,7 @@ export class TileMap extends SparseGrid<Tile> {
         }
         else if (!tN && tW && tE && tS) {
             junction = JunctionType.T3;
-            direction = 1;
+            direction = 3;
         }
         //T4
         else if (tN && tW && tE && tS){

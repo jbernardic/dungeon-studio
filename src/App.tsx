@@ -7,21 +7,17 @@ import { useEditorStore } from './stores/editorStore';
 
 import {
   Menubar,
+  MenubarCheckboxItem,
   MenubarContent,
   MenubarItem,
   MenubarMenu,
-  MenubarRadioGroup,
-  MenubarRadioItem,
+  MenubarSeparator,
   MenubarShortcut,
+  MenubarSub,
+  MenubarSubContent,
+  MenubarSubTrigger,
   MenubarTrigger,
 } from "@/components/ui/menubar"
-
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 
 function App() {
 
@@ -50,18 +46,14 @@ function App() {
             <MenubarMenu>
               <MenubarTrigger>File</MenubarTrigger>
               <MenubarContent>
-                <MenubarItem>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger className="text-left w-full">
-                      Export as...
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem>obj</DropdownMenuItem>
-                      <DropdownMenuItem>gltf/glb</DropdownMenuItem>
-                      <DropdownMenuItem>png</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </MenubarItem>
+                <MenubarSub>
+                  <MenubarSubTrigger>Export as..</MenubarSubTrigger>
+                  <MenubarSubContent>
+                    <MenubarItem>obj</MenubarItem>
+                    <MenubarItem>gltf/glb</MenubarItem>
+                    <MenubarItem>png</MenubarItem>
+                  </MenubarSubContent>
+                </MenubarSub>
               </MenubarContent>
             </MenubarMenu>
 
@@ -80,10 +72,9 @@ function App() {
             <MenubarMenu>
               <MenubarTrigger>View</MenubarTrigger>
               <MenubarContent>
-              <MenubarRadioGroup value="3D">
-                <MenubarRadioItem value="3D">3D</MenubarRadioItem>
-                <MenubarRadioItem value="2D">2D</MenubarRadioItem>
-              </MenubarRadioGroup>
+                <MenubarCheckboxItem>Enable top-down camera</MenubarCheckboxItem>
+                <MenubarSeparator></MenubarSeparator>
+                <MenubarItem>Reset camera</MenubarItem>
               </MenubarContent>
             </MenubarMenu>
           </Menubar>

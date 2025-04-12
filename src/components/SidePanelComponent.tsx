@@ -17,7 +17,7 @@ const SidePanelComponent = ({
                     <h1 className="font-bold text-center">Paint tool</h1>
                     <div>
                         <h2>Select Tile</h2>
-                        <ToggleGroup value={tileType} type="single" onValueChange={(val)=>usePaintToolStore.setState({tileType: val as TileType})}>
+                        <ToggleGroup value={tileType} type="single" onValueChange={(val)=>val.length>0 && usePaintToolStore.setState({tileType: val as TileType})}>
                             {Object.values(TileType).map(tileType=>
                                     <ToggleGroupItem key={tileType} value={tileType}>{tileType}</ToggleGroupItem>
                             )}
@@ -26,7 +26,7 @@ const SidePanelComponent = ({
                     </div>
                     <div>
                         <h2>Select Mode</h2>
-                        <ToggleGroup value={mode} type="single" onValueChange={(val)=>usePaintToolStore.setState({mode: val as PaintToolMode})}>
+                        <ToggleGroup value={mode} type="single" onValueChange={(val)=>val.length>0 && usePaintToolStore.setState({mode: val as PaintToolMode})}>
                             {Object.values(PaintToolMode).map(mode=>
                                     <ToggleGroupItem key={mode} value={mode}>{mode}</ToggleGroupItem>
                             )}

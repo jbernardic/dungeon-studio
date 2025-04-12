@@ -25,6 +25,7 @@ export class EditorScene {
     private paintTool: PaintTool = new PaintTool();
     private shadowGenerator: ShadowGenerator;
     private previousCameraTarget = new Vector3();
+    private previousCameraRotY = 0;
 
     constructor(scene: Scene) {
         this.scene = scene;
@@ -71,6 +72,7 @@ export class EditorScene {
             else if(command == "TOPDOWN_TRUE"){
                 const position = this.scene.activeCamera?.position ?? new Vector3(0, 0, 0);
                 this.previousCameraTarget = (this.scene.activeCamera as FreeCamera | null)?.getTarget() ?? Vector3.Zero();
+                this.previousCameraRotY = (this.scene.activeCamera as FreeCamera | null)?.rotation.y ?? 0;
                 this.scene.activeCamera?.dispose();
                 this.scene.activeCamera = this.createTopDownCamera();
                 this.scene.activeCamera.position = position;
@@ -83,6 +85,7 @@ export class EditorScene {
                 this.scene.activeCamera = this.createFreeCamera();
                 this.scene.activeCamera.position = position;
                 (this.scene.activeCamera as FreeCamera).setTarget(this.previousCameraTarget);
+                (this.scene.activeCamera as FreeCamera).rotation.y = this.previousCameraRotY;
                 useEditorStore.getState().setTopDown(false);
             }
             clearCommand();
@@ -175,7 +178,6 @@ export class EditorScene {
     }
 
     update() {
-        
         const pickInfo = this.scene.pick(this.scene.pointerX, this.scene.pointerY,
             (mesh) => mesh.name == "ground"
         );
@@ -243,7 +245,6 @@ export class EditorScene {
         
           // Move the camera each frame
           const moveObserver = scene.onBeforeRenderObservable.add(() => {
-            console.log("a");
             const move = new Vector3(0, 0, 0);
             const speed = 0.5;
         

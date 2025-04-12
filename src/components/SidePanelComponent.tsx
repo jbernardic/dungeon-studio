@@ -1,47 +1,42 @@
 import { usePaintToolStore } from "../stores/paintToolStore"
 import { TileType } from "../types/tileTypes";
 import { PaintToolMode } from "../types/toolTypes";
-import { Button } from "@/components/ui/button"
+import {Card} from "@/components/ui/card"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 
 const SidePanelComponent = ({
     ...rest
 }) => {
 
-    return <div {...rest}>
+    const { tileType, mode } = usePaintToolStore();
+
+    return <div className="h-lvh" {...rest}>
         <div className="p-5">
-            <h1 className="text-center font-bold text-xl w-[100%]">Dungeon Studio</h1>
-            <form>
-                <div>
-                    <h1 className="text-lg">Paint Tool</h1>
-                    <hr></hr>
-                    <label>
-                        <div>
-                            <span>tile: </span>
-                            <select onChange={(event)=>usePaintToolStore.setState({tileType: event.target.value as TileType})}>
-                                {Object.values(TileType).map(tileType=>
-                                    <>
-                                        <option value={tileType}>{tileType}</option>
-                                    </>
-                                )}
-                            </select>
-                        </div>
-                        <div>
-                            <span>mode: </span>
-                            <select onChange={(event)=>usePaintToolStore.setState({mode: event.target.value as PaintToolMode})}>
-                                {Object.values(PaintToolMode).map(tileType=>
-                                    <>
-                                        <option value={tileType}>{tileType}</option>
-                                    </>
-                                )}
-                            </select>
-                        </div>
+            <h1 className="text-primary text-left font-bold text-lg">Dungeon studio</h1>
+                <Card className="p-4 mt-5">
+                    <h1 className="font-bold text-center">Paint tool</h1>
+                    <div>
+                        <h2>Select Tile</h2>
+                        <ToggleGroup value={tileType} type="single" onValueChange={(val)=>usePaintToolStore.setState({tileType: val as TileType})}>
+                            {Object.values(TileType).map(tileType=>
+                                    <ToggleGroupItem key={tileType} value={tileType}>{tileType}</ToggleGroupItem>
+                            )}
+                        </ToggleGroup>
 
-                    </label>
-                    <Button>Click me</Button>
-
-                </div>
-
-            </form>
+                    </div>
+                    <div>
+                        <h2>Select Mode</h2>
+                        <ToggleGroup value={mode} type="single" onValueChange={(val)=>usePaintToolStore.setState({mode: val as PaintToolMode})}>
+                            {Object.values(PaintToolMode).map(mode=>
+                                    <ToggleGroupItem key={mode} value={mode}>{mode}</ToggleGroupItem>
+                            )}
+                        </ToggleGroup>
+                    </div>
+                </Card>
+                <Card className="p-4 mt-5">
+                    <h1 className="font-bold text-center">Generate</h1>
+                    <div>Not done</div>
+                </Card>
         </div>
     </div>;
 };

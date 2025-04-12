@@ -1,4 +1,4 @@
-import { Scene, MeshBuilder, Color4, Vector3, Color3, FreeCamera, HemisphericLight, AbstractMesh, PointerEventTypes, DynamicTexture, Texture, DirectionalLight, ShadowGenerator, KeyboardEventTypes } from '@babylonjs/core';
+import { Scene, MeshBuilder, Vector3, Color3, FreeCamera, HemisphericLight, AbstractMesh, PointerEventTypes, DynamicTexture, Texture, DirectionalLight, ShadowGenerator, KeyboardEventTypes, Camera } from '@babylonjs/core';
 import "@babylonjs/loaders/glTF";
 import { MeshUtils } from '../utils/meshUtils';
 import { JunctionType, Tile, TileType, WallTile } from '../types/tileTypes';
@@ -19,12 +19,13 @@ export class EditorScene {
     private wallMeshes: Map<JunctionType, AbstractMesh> = new Map();
     private groundTexture: DynamicTexture;
     private groundMesh: AbstractMesh;
-    private camera: FreeCamera;
     private paintMode: boolean = false;
     private lastPaintedTile: {x: number, y: number} | null = null;
     private tileMap: TileMap = new TileMap();
     private paintTool: PaintTool = new PaintTool();
     private shadowGenerator: ShadowGenerator;
+    private freeCamera: Camera;
+    private topDownCamera: Camera;
 
     constructor(scene: Scene) {
         this.scene = scene;
@@ -51,36 +52,44 @@ export class EditorScene {
                 info.event.ctrlKey && info.event.key == "y"){
                 this.redoTiles();
             }
+            else if( info.type == KeyboardEventTypes.KEYDOWN && info.event.key == " "){
+                const topDown = useEditorStore.getState().isTopDown;
+                useEditorStore.getState().sendCommand(!topDown ? "TOPDOWN_TRUE" : "TOPDOWN_FALSE");
+            }
         });
 
         scene.onBeforeRenderObservable.add(()=>{
             const {command, clearCommand} = useEditorStore.getState();
             if(command == "UNDO"){
                 this.undoTiles();
-                clearCommand();
             }
             else if(command == "REDO"){
                 this.redoTiles();
-                clearCommand();
             }
             else if(command == "EXPORT"){
                 //TODO
             }
+            else if(command == "TOPDOWN_TRUE"){
+                if(this.scene.activeCamera == this.freeCamera){
+                    this.topDownCamera.position = this.freeCamera.position;
+                }
+                this.scene.activeCamera = this.topDownCamera;
+                useEditorStore.getState().setTopDown(true);
+            }
+            else if(command == "TOPDOWN_FALSE"){
+                
+                if(this.scene.activeCamera == this.topDownCamera){
+                    this.topDownCamera.position = this.freeCamera.position;
+                }
+                this.scene.activeCamera = this.freeCamera;
+                useEditorStore.getState().setTopDown(false);
+            }
+            clearCommand();
         })
 
-        this.camera = new FreeCamera("camera1", new Vector3(0, 5, -10), scene);
-        this.camera.setTarget(Vector3.Zero());
-        this.camera.keysUpward.push(69); //increase elevation
-        this.camera.keysDownward.push(81); //decrease elevation
-        this.camera.keysUp.push(87); //forwards 
-        this.camera.keysDown.push(83); //backwards
-        this.camera.keysLeft.push(65);
-        this.camera.keysRight.push(68);
-        //@ts-ignore
-        this.camera.inputs.attached.mouse.buttons = [2];
-
-        const canvas = scene.getEngine().getRenderingCanvas();
-        this.camera.attachControl(canvas, true);
+        this.freeCamera = this.createFreeCamera(this.scene);
+        this.topDownCamera = this.createTopDownCamera(this.scene);
+        this.scene.activeCamera = this.freeCamera;
 
         // Hemispheric Light (ambient light)
         const light1 = new HemisphericLight("light1", new Vector3(0, 1, 0), scene);
@@ -141,7 +150,7 @@ export class EditorScene {
         gridMesh.material = gridMaterial
         gridMesh.position.y = 0.01;
 
-        this.placeMesh = MeshBuilder.CreateBox("placeMesh", { size: 0.25, faceColors: Array(6).fill(new Color4(1, 1, 1, 1)) }, scene);
+        this.placeMesh = MeshBuilder.CreateBox("placeMesh", { size: 0.25 }, scene);
         this.placeMesh.material = new SimpleMaterial("placeMeshMaterial", this.scene);
         (this.placeMesh.material as SimpleMaterial).alpha = 0.6;
         (this.placeMesh.material as SimpleMaterial).disableLighting = true;
@@ -206,6 +215,69 @@ export class EditorScene {
                 }
             }
         }
+    }
+
+    private createTopDownCamera(scene: Scene): Camera {
+        const camera = new FreeCamera(
+            "TopDownCamera",
+            new Vector3(0, 50, 0),
+            scene
+          );
+        
+          // Look straight down
+          camera.rotation = new Vector3(Math.PI / 2, 0, 0);
+        
+          // Disable built-in controls
+          camera.inputs.clear();
+        
+          // Manual key tracking
+          const inputMap: Record<string, boolean> = {};
+        
+          scene.onKeyboardObservable.add((kbInfo) => {
+            const key = kbInfo.event.key.toLowerCase();
+            if (kbInfo.type === KeyboardEventTypes.KEYDOWN) {
+              inputMap[key] = true;
+            } else if (kbInfo.type === KeyboardEventTypes.KEYUP) {
+              inputMap[key] = false;
+            }
+          });
+        
+          // Move the camera each frame
+          scene.onBeforeRenderObservable.add(() => {
+            const move = new Vector3(0, 0, 0);
+            const speed = 0.5;
+        
+            if (inputMap["w"]) move.z += 1;
+            if (inputMap["s"]) move.z -= 1;
+            if (inputMap["a"]) move.x -= 1;
+            if (inputMap["d"]) move.x += 1;
+        
+            if (!move.equals(Vector3.Zero())) {
+              move.normalize().scaleInPlace(speed);
+              camera.position.addInPlace(move);
+            }
+          });
+        
+          const canvas = scene.getEngine().getRenderingCanvas();
+          camera.attachControl(canvas, true);
+        
+          return camera;
+    }
+
+    private createFreeCamera(scene: Scene): Camera{
+        const camera = new FreeCamera("camera1", new Vector3(0, 5, -10), scene);
+        camera.setTarget(Vector3.Zero());
+        camera.keysUpward.push(69); //increase elevation
+        camera.keysDownward.push(81); //decrease elevation
+        camera.keysUp.push(87); //forwards 
+        camera.keysDown.push(83); //backwards
+        camera.keysLeft.push(65);
+        camera.keysRight.push(68);
+        //@ts-ignore
+        camera.inputs.attached.mouse.buttons = [2];
+        const canvas = scene.getEngine().getRenderingCanvas();
+        camera.attachControl(canvas, true);
+        return camera;
     }
 
     private undoTiles(){

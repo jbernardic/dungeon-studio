@@ -1,6 +1,7 @@
 import { usePaintToolStore } from "../stores/paintToolStore"
 import { TileType } from "../types/tileTypes";
 import { PaintToolMode } from "../types/toolTypes";
+import { Button } from "@/components/ui/button"
 
 const SidePanelComponent = ({
     ...rest
@@ -36,6 +37,7 @@ const SidePanelComponent = ({
                         </div>
 
                     </label>
+                    <Button>Click me</Button>
 
                 </div>
 

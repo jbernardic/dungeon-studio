@@ -26,7 +26,6 @@ export class TileMap extends SparseGrid<Tile> {
     // If the tile is empty, it will remove surrounding walls if the replaced tile is a floor.
     // It will also update the wall direction and junction info for surrounding walls.
     placeTile(x: number, y: number, tileType: TileType): void {
-
         this.tileHistory.push(this.clone());
         const tile = this.get(x, y);
 

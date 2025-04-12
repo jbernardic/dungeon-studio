@@ -24,8 +24,7 @@ export class EditorScene {
     private tileMap: TileMap = new TileMap();
     private paintTool: PaintTool = new PaintTool();
     private shadowGenerator: ShadowGenerator;
-    private freeCamera: Camera;
-    private topDownCamera: Camera;
+    private previousCameraTarget = new Vector3();
 
     constructor(scene: Scene) {
         this.scene = scene;
@@ -70,26 +69,25 @@ export class EditorScene {
                 //TODO
             }
             else if(command == "TOPDOWN_TRUE"){
-                if(this.scene.activeCamera == this.freeCamera){
-                    this.topDownCamera.position = this.freeCamera.position;
-                }
-                this.scene.activeCamera = this.topDownCamera;
+                const position = this.scene.activeCamera?.position ?? new Vector3(0, 0, 0);
+                this.previousCameraTarget = (this.scene.activeCamera as FreeCamera | null)?.getTarget() ?? Vector3.Zero();
+                this.scene.activeCamera?.dispose();
+                this.scene.activeCamera = this.createTopDownCamera();
+                this.scene.activeCamera.position = position;
                 useEditorStore.getState().setTopDown(true);
             }
             else if(command == "TOPDOWN_FALSE"){
                 
-                if(this.scene.activeCamera == this.topDownCamera){
-                    this.topDownCamera.position = this.freeCamera.position;
-                }
-                this.scene.activeCamera = this.freeCamera;
+                const position = this.scene.activeCamera?.position ?? new Vector3(0, 0, 0);
+                this.scene.activeCamera?.dispose();
+                this.scene.activeCamera = this.createFreeCamera();
+                this.scene.activeCamera.position = position;
+                (this.scene.activeCamera as FreeCamera).setTarget(this.previousCameraTarget);
                 useEditorStore.getState().setTopDown(false);
             }
             clearCommand();
         })
-
-        this.freeCamera = this.createFreeCamera(this.scene);
-        this.topDownCamera = this.createTopDownCamera(this.scene);
-        this.scene.activeCamera = this.freeCamera;
+        this.scene.activeCamera = this.createFreeCamera();
 
         // Hemispheric Light (ambient light)
         const light1 = new HemisphericLight("light1", new Vector3(0, 1, 0), scene);
@@ -217,7 +215,8 @@ export class EditorScene {
         }
     }
 
-    private createTopDownCamera(scene: Scene): Camera {
+    private createTopDownCamera(): Camera {
+        const scene = this.scene;
         const camera = new FreeCamera(
             "TopDownCamera",
             new Vector3(0, 50, 0),
@@ -243,7 +242,8 @@ export class EditorScene {
           });
         
           // Move the camera each frame
-          scene.onBeforeRenderObservable.add(() => {
+          const moveObserver = scene.onBeforeRenderObservable.add(() => {
+            console.log("a");
             const move = new Vector3(0, 0, 0);
             const speed = 0.5;
         
@@ -257,6 +257,10 @@ export class EditorScene {
               camera.position.addInPlace(move);
             }
           });
+
+          camera.onDispose = ()=>{
+            scene.onBeforeRenderObservable.remove(moveObserver);
+          }
         
           const canvas = scene.getEngine().getRenderingCanvas();
           camera.attachControl(canvas, true);
@@ -264,8 +268,8 @@ export class EditorScene {
           return camera;
     }
 
-    private createFreeCamera(scene: Scene): Camera{
-        const camera = new FreeCamera("camera1", new Vector3(0, 5, -10), scene);
+    private createFreeCamera(): Camera{
+        const camera = new FreeCamera("camera1", new Vector3(0, 5, -10), this.scene);
         camera.setTarget(Vector3.Zero());
         camera.keysUpward.push(69); //increase elevation
         camera.keysDownward.push(81); //decrease elevation
@@ -275,7 +279,7 @@ export class EditorScene {
         camera.keysRight.push(68);
         //@ts-ignore
         camera.inputs.attached.mouse.buttons = [2];
-        const canvas = scene.getEngine().getRenderingCanvas();
+        const canvas = this.scene.getEngine().getRenderingCanvas();
         camera.attachControl(canvas, true);
         return camera;
     }

@@ -1,4 +1,4 @@
-import { Scene, MeshBuilder, Vector3, Color3, FreeCamera, HemisphericLight, AbstractMesh, PointerEventTypes, DynamicTexture, Texture, DirectionalLight, ShadowGenerator, KeyboardEventTypes, Camera, Quaternion } from '@babylonjs/core';
+import { Scene, MeshBuilder, Vector3, Color3, FreeCamera, HemisphericLight, AbstractMesh, PointerEventTypes, DynamicTexture, Texture, DirectionalLight, ShadowGenerator, KeyboardEventTypes, Quaternion } from '@babylonjs/core';
 import "@babylonjs/loaders/glTF";
 import { MeshUtils } from '../utils/meshUtils';
 import { JunctionType, Tile, TileType, WallTile } from '../types/tileTypes';

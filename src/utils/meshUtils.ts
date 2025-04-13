@@ -1,4 +1,5 @@
-import { AbstractMesh, ImportMeshAsync, Scene, TransformNode, Vector3 } from "@babylonjs/core";
+import { AbstractMesh, ImportMeshAsync, Mesh, Scene, TransformNode, Vector3 } from "@babylonjs/core";
+import { OBJExport } from "@babylonjs/serializers";
 
 export class MeshUtils {
     static async import(path: string, scene: Scene): Promise<AbstractMesh | null> {
@@ -24,20 +25,38 @@ export class MeshUtils {
             return null;
         }
 
-        // const boundingInfo = root.getHierarchyBoundingVectors(true, );
-        // const boxMin = boundingInfo.min;
-        // const boxMax = boundingInfo.max;
-
-        // if(boxMin != Vector3.Zero() && boxMax != Vector3.Zero()){
-        //     const scaleX = 0.5/Math.max(Math.abs(boxMin.x), boxMax.x);
-        //     const scaleZ = 0.5/Math.max(Math.abs(boxMin.z), boxMax.z);
-        //     const uniformScale = Math.min(scaleX, scaleZ);
-        //     root.scaling = new Vector3(-uniformScale, uniformScale, uniformScale);
-        // }
-
         root.scaling = new Vector3(-1, 1, 1);
 
         root.setEnabled(false);
         return root;
+    }
+
+    static exportOBJ(meshes: AbstractMesh[], filename: string){
+        const mergedMesh = Mesh.MergeMeshes( meshes.filter(mesh=>
+             mesh && mesh instanceof Mesh && mesh.geometry
+        ) as Mesh[], false, true, undefined, false, true);
+        if(mergedMesh){
+            const text = OBJExport.OBJ([mergedMesh], false, undefined, true);
+            this.downloadTextFile(text, filename);
+            mergedMesh.dispose();
+        }
+        else{
+            alert("Error while exporting.");
+        }
+    }
+
+    static downloadTextFile(content: string, filename: string){
+        const blob = new Blob([content], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+      
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+      
+        document.body.appendChild(link);
+        link.click();
+
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     }
 }

@@ -50,6 +50,8 @@ export class EditorScene {
             }
         });
 
+        
+
         scene.onKeyboardObservable.add((info)=>{
             if( info.type == KeyboardEventTypes.KEYDOWN &&
                 info.event.ctrlKey && info.event.key == "z"){
@@ -73,9 +75,6 @@ export class EditorScene {
             else if(command == "REDO"){
                 this.redoTiles();
             }
-            else if(command == "EXPORT"){
-                //TODO
-            }
             else if(command == "TOPDOWN_TRUE"){
                 this.setTopDownView();
                 useEditorStore.getState().setTopDown(true);
@@ -86,6 +85,14 @@ export class EditorScene {
             }
             else if(command == "RESET_CAMERA"){
                 this.resetCamera();
+            }
+            else if(command == "EXPORT_OBJ"){
+                //TODO change this
+                const wallMeshes = this.scene.meshes.filter(mesh=>mesh.name.startsWith("Wall ("));
+                MeshUtils.exportOBJ(wallMeshes, "dungeon.obj");
+            }
+            else if(command == "EXPORT_PNG"){
+                //TODO
             }
             clearCommand();
         });

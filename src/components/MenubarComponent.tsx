@@ -17,9 +17,8 @@ const MenubarComponent = () => {
           <MenubarSub>
             <MenubarSubTrigger>Export as..</MenubarSubTrigger>
             <MenubarSubContent>
-              <MenubarItem>obj</MenubarItem>
-              <MenubarItem>gltf/glb</MenubarItem>
-              <MenubarItem>png</MenubarItem>
+              <MenubarItem onClick={()=>useEditorStore.getState().sendCommand("EXPORT_OBJ")}>obj</MenubarItem>
+              <MenubarItem onClick={()=>useEditorStore.getState().sendCommand("EXPORT_PNG")}>png</MenubarItem>
             </MenubarSubContent>
           </MenubarSub>
         </MenubarContent>

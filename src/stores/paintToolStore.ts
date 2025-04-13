@@ -3,6 +3,6 @@ import {TileType } from "../types/tileTypes";
 import { PaintToolState, PaintToolMode } from "../types/toolTypes";
 
 export const usePaintToolStore = create<Readonly<PaintToolState>>(() => ({
-  tileType: TileType.Floor,
+  tileType: TileType.Wall,
   mode: PaintToolMode.Brush
 }));

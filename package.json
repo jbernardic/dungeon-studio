@@ -11,9 +11,10 @@
     "test": ""
   },
   "dependencies": {
-    "@babylonjs/core": "^8.0.1",
+    "@babylonjs/core": "^8.2.0",
     "@babylonjs/loaders": "^8.0.1",
     "@babylonjs/materials": "^8.0.1",
+    "@babylonjs/serializers": "^8.2.0",
     "@radix-ui/react-dropdown-menu": "^2.1.7",
     "@radix-ui/react-menubar": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.0",

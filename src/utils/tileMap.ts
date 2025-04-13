@@ -25,8 +25,9 @@ export class TileMap extends SparseGrid<Tile> {
     // If the tile is a floor, it will also add surrounding walls.
     // If the tile is empty, it will remove surrounding walls if the replaced tile is a floor.
     // It will also update the wall direction and junction info for surrounding walls.
-    placeTile(x: number, y: number, tileType: TileType): void {
+    placeTile(x: number, y: number, tileType: TileType, clearTileFuture: boolean = true): void {
         this.tileHistory.push(this.clone());
+        if(clearTileFuture) this.tileFuture = [];
         const tile = this.get(x, y);
 
         switch (tileType) {
@@ -60,7 +61,7 @@ export class TileMap extends SparseGrid<Tile> {
             for(const tile of this.getAll()){
                 const historyTile = historyTiles.get(tile.x, tile.y);
                 if(tile.value.type != historyTile.type){
-                    this.placeTile(tile.x, tile.y, historyTile.type);
+                    this.placeTile(tile.x, tile.y, historyTile.type, false);
                     this.tileHistory.pop();
                 }
             }
@@ -73,7 +74,7 @@ export class TileMap extends SparseGrid<Tile> {
             for(const tile of this.getAll()){
                 const futureTile = futureTiles.get(tile.x, tile.y);
                 if(tile.value.type != futureTile.type){
-                    this.placeTile(tile.x, tile.y, futureTile.type);
+                    this.placeTile(tile.x, tile.y, futureTile.type, false);
                 }
             }
         }

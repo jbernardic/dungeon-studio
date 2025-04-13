@@ -44,7 +44,7 @@ const MenubarComponent = () => {
             <MenubarShortcut>SPACE</MenubarShortcut>
           </MenubarCheckboxItem>
           <MenubarSeparator></MenubarSeparator>
-          <MenubarItem>Reset camera</MenubarItem>
+          <MenubarItem onClick={()=>useEditorStore.getState().sendCommand("RESET_CAMERA")} >Reset camera</MenubarItem>
         </MenubarContent>
       </MenubarMenu>
     </Menubar>

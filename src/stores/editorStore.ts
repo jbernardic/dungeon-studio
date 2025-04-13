@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-type Command = "UNDO" | "REDO" | "EXPORT" | "TOPDOWN_TRUE" | "TOPDOWN_FALSE" | null;
+type Command = "UNDO" | "REDO" | "EXPORT" | "TOPDOWN_TRUE" | "TOPDOWN_FALSE" | "RESET_CAMERA" | null;
 
 interface EditorState {
   command: Command;

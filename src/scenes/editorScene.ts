@@ -84,6 +84,9 @@ export class EditorScene {
                 this.setFreeView();
                 useEditorStore.getState().setTopDown(false);
             }
+            else if(command == "RESET_CAMERA"){
+                this.resetCamera();
+            }
             clearCommand();
         });
 
@@ -212,6 +215,12 @@ export class EditorScene {
                 }
             }
         }
+    }
+    
+    private resetCamera(){
+        this.scene.activeCamera?.dispose();
+        this.scene.activeCamera = null;
+        this.setFreeView();
     }
 
     private setTopDownView() {

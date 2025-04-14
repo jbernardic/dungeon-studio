@@ -16,9 +16,15 @@ export class PaintTool {
                 tileMap.placeTile(x, y, state.tileType);    
             break;
             case PaintToolMode.Bucket:
-                tileMap.floodFill(new Vector2(x, y), 400, tileMap.get(x, y).type, (p)=>{
-                    tileMap.placeTile(p.x, p.y, state.tileType);
+                const tiles: {x: number, y:number}[] = [];
+                const floodDepth = 400;
+                tileMap.floodFill(new Vector2(x, y), floodDepth, tileMap.get(x, y).type, (p)=>{
+                    tiles.push({x: p.x, y: p.y});
                 });
+                for(const tile of tiles){
+                    tileMap.placeTile(tile.x, tile.y, state.tileType);
+                    if(tiles.length >= floodDepth) break;
+                }
                 break;
             default:
                 break;

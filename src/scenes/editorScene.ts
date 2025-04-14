@@ -207,7 +207,11 @@ export class EditorScene {
             }
             else if(this.paintTool.getState().tileType == TileType.Empty){
                 x = Math.round(pickInfo.pickedPoint!.x*2)/2-0.5;
-                z = Math.round(pickInfo.pickedPoint!.z*2)/2-0.5;   
+                z = Math.round(pickInfo.pickedPoint!.z*2)/2-0.5;
+                if(this.tileMap.get(x, z).type == TileType.Empty){
+                    x = Math.floor(pickInfo.pickedPoint!.x);
+                    z = Math.floor(pickInfo.pickedPoint!.z);
+                }
             }
             else{
                 x = Math.floor(pickInfo.pickedPoint!.x);
@@ -375,7 +379,9 @@ export class EditorScene {
             //this.setGroundColor(x, y, DebugTileColors.Wall);
         }
         else if (tile.type == TileType.Empty) {
-            this.setGroundColor(x, y, DebugTileColors.Empty);
+            if(Number.isInteger(x) && Number.isInteger(y)){
+                this.setGroundColor(x, y, DebugTileColors.Empty);
+            }
         }
         else if (tile.type == TileType.Floor) {
             this.setGroundColor(x, y, DebugTileColors.Floor);

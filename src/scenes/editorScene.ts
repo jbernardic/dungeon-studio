@@ -6,6 +6,7 @@ import { TileMap } from '../utils/tileMap';
 import { GridMaterial, SimpleMaterial, SkyMaterial } from '@babylonjs/materials';
 import { PaintTool } from './editorTools';
 import { useEditorStore } from '@/stores/editorStore';
+import { CommonUtils } from '@/utils/commonUtils';
 
 class DebugTileColors{
     static readonly Empty = new Color3(0.3, 0.45, 0.3);
@@ -50,8 +51,6 @@ export class EditorScene {
             }
         });
 
-        
-
         scene.onKeyboardObservable.add((info)=>{
             if( info.type == KeyboardEventTypes.KEYDOWN &&
                 info.event.ctrlKey && info.event.key == "z"){
@@ -92,7 +91,19 @@ export class EditorScene {
                 MeshUtils.exportOBJ(wallMeshes, "dungeon.obj");
             }
             else if(command == "EXPORT_PNG"){
-                //TODO
+                const imageData = this.tileMap.getImageData(
+                    new Map([
+                        [TileType.Empty, DebugTileColors.Empty],
+                        [TileType.Floor, DebugTileColors.Floor],
+                        [TileType.Wall, DebugTileColors.Wall]
+                    ])
+                );
+                if(!imageData){
+                    alert("Error while exporting image.");
+                    return;
+                }
+                console.log(imageData);
+                CommonUtils.downloadImage(imageData.data, "dungeon.png", imageData.width, imageData.height);
             }
             clearCommand();
         });

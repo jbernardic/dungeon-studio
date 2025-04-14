@@ -1,4 +1,4 @@
-import { Vector2 } from "@babylonjs/core";
+import { Color3, Color4, Vector2 } from "@babylonjs/core";
 import { JunctionType, Tile, TileType } from "../types/tileTypes";
 import { SparseGrid } from "./sparseGrid";
 import { isEqual } from "lodash";
@@ -103,6 +103,74 @@ export class TileMap extends SparseGrid<Tile> {
             }
         }
     }
+
+    getImageData(colorMap: Map<TileType, Color3 | Color4>, emptyEdgeColor: Color3 | Color4 = Color3.Black()): { data: (Color3 | Color4)[], width: number, height: number } | null {
+        const data: (Color3 | Color4)[] = [];
+    
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+    
+        for (const tile of this.getAll()) {
+            const x2 = tile.x * 2;
+            const y2 = tile.y * 2;
+            minX = Math.min(minX, x2);
+            minY = Math.min(minY, y2);
+            maxX = Math.max(maxX, x2);
+            maxY = Math.max(maxY, y2);
+        }
+    
+        if (minX === Infinity || minY === Infinity) return null;
+    
+        // Add padding to allow edge pixels
+        minX -= 4;
+        minY -= 4;
+        maxX += 4;
+        maxY += 4;
+    
+        const sizeX = maxX - minX + 1;
+        const sizeY = maxY - minY + 1;
+    
+        const colorOf = (tileType: TileType) => colorMap.get(tileType) ?? Color3.Purple();
+        data.length = sizeX * sizeY;
+        data.fill(colorOf(TileType.Empty), 0, sizeX * sizeY);
+    
+        for (const tile of this.getAll()) {
+
+            const px = Math.round(tile.x * 2) - minX;
+            const py = Math.round(tile.y * 2) - minY;
+            const flippedY = sizeY - py - 1;
+    
+            data[flippedY * sizeX + px] = colorOf(tile.value.type);
+
+            //draw edge tiles
+            if(Number.isInteger(tile.x) && Number.isInteger(tile.y)){
+                for(const n of [{x: 1, y: 0}, {x: 0, y: -1}, {x: -1, y: 0}, {x: 0, y: 1}]){
+                    
+                    const edgeType = this.getEdge(tile.x, tile.y, tile.x+n.x, tile.y+n.y);
+                    let edgeColor = colorOf(edgeType);
+                    if(edgeType == TileType.Empty) edgeColor = emptyEdgeColor;
+
+                    data[(flippedY-n.y) * sizeX + px + n.x] = edgeColor;
+
+                    if(n.x != 0){
+                        data[(flippedY-n.y+1) * sizeX + px + n.x] = edgeColor;
+                        data[(flippedY-n.y-1) * sizeX + px + n.x] = edgeColor;
+                    }
+                    else if(n.y != 0){
+                        data[(flippedY-n.y) * sizeX + px + n.x+1] = edgeColor;
+                        data[(flippedY-n.y) * sizeX + px + n.x-1] = edgeColor;
+                    }
+                }
+            }
+
+        }
+    
+        return { data, width: sizeX, height: sizeY };
+    }    
+    
+
 
     //gets edge between tiles (x1, y1) and (x2, y2)
     private getEdge(x1: number, y1: number, x2: number, y2: number): TileType {

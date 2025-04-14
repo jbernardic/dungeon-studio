@@ -1,5 +1,6 @@
 import { AbstractMesh, ImportMeshAsync, Mesh, Scene, TransformNode, Vector3 } from "@babylonjs/core";
 import { OBJExport } from "@babylonjs/serializers";
+import { CommonUtils } from "./commonUtils";
 
 export class MeshUtils {
     static async import(path: string, scene: Scene): Promise<AbstractMesh | null> {
@@ -35,28 +36,14 @@ export class MeshUtils {
         const mergedMesh = Mesh.MergeMeshes( meshes.filter(mesh=>
              mesh && mesh instanceof Mesh && mesh.geometry
         ) as Mesh[], false, true, undefined, false, true);
+
         if(mergedMesh){
             const text = OBJExport.OBJ([mergedMesh], false, undefined, true);
-            this.downloadTextFile(text, filename);
+            CommonUtils.downloadText(text, filename);
             mergedMesh.dispose();
         }
         else{
             alert("Error while exporting.");
         }
-    }
-
-    static downloadTextFile(content: string, filename: string){
-        const blob = new Blob([content], { type: "text/plain" });
-        const url = URL.createObjectURL(blob);
-      
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = filename;
-      
-        document.body.appendChild(link);
-        link.click();
-
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
     }
 }
